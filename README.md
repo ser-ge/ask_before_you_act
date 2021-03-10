@@ -14,3 +14,8 @@
 - direction sentenses (parsing easy to finish)
 - direction sentece oracle
 
+
+Parsing libraries:
+
+- Lark (main parsing and to grid conversion)
+- NanGram for generating only, ideally get rid of this if possible.
