@@ -6,7 +6,7 @@
 
 - Parser for state premises: "red door is open"
 - AST for state premise to state premise named tuples (see TreeToGrid)
-- Orcale for state premises given grid
+- Orcale for state premises given grid (toy example)
 - generator of all possible valid phrases
 
 ## To do:

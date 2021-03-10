@@ -6,7 +6,7 @@ class Oracle:
     def __init__(self, parser, tree_to_grid, require_all=True):
 
         self.parse = parser.parse
-        self.to_grid_slice = tree_to_grid().transform
+        self.to_state_premise = tree_to_grid().transform
         self.require_all = require_all
 
 
@@ -21,7 +21,7 @@ class Oracle:
             print("invalid syntac, I dont understand")
             return None  #TODO appropriate return value, perhaps exceptions
 
-        state_premise = self.to_grid_slice(tree)
+        state_premise = self.to_state_premise(tree)
 
         if self.require_all and None in state_premise:
             print("Mising Values")
