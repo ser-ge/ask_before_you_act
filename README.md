@@ -11,6 +11,8 @@
 
 ## To do:
 - lots
+- check that grid channel order matchtes assumed, and test against enviroment
+- currentlyu (CHANNEL, HEIGHT, WIDTH)
 - direction sentenses (parsing easy to finish)
 - direction sentece oracle
 
