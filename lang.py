@@ -22,6 +22,7 @@ grammar = """
 
 
 # %%
+parser = Lark(grammar, start='sentence')
 
 class TreeToGrid(Transformer):
 
