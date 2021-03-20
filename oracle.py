@@ -13,6 +13,8 @@ class Oracle:
     def answer(self, question, example_grid):
         """
         Assumed grid shape: (Channels, height, width) TODO check grid world
+        (w h c)
+        c: object, type color, state
         """
 
         try:
@@ -28,9 +30,9 @@ class Oracle:
             return None
 
 
-        objects = example_grid[0].ravel()
-        colors = example_grid[1].ravel()
-        states = example_grid[2].ravel()
+        objects = example_grid[..., 0].ravel()
+        colors = example_grid[..., 1].ravel()
+        states = example_grid[..., 2].ravel()
 
         matched = []
 

@@ -48,7 +48,7 @@ objects = np.array([door, None, None, door]).reshape(2,2)
 colors = np.array([red, None , None, blue ]).reshape(2,2)
 states = np.array([closed, None, None, opn ]).reshape(2,2)
 
-example_grid = np.array([objects, colors, states])
+example_grid = np.stack([objects, colors, states], 2)
 # %%
 
 
