@@ -61,6 +61,7 @@ class OracleWrapper(gym.core.Wrapper):
         try:
             ans = self.oracle.answer(question, full_grid)
             return ans
+
         except ValueError as e:
             print(e)
 
