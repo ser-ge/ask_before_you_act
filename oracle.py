@@ -1,5 +1,6 @@
 from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
-
+import numpy as np
+import gym
 
 class Oracle:
 
@@ -10,58 +11,56 @@ class Oracle:
         self.require_all = require_all
 
 
-    def answer(self, question, example_grid):
+    def answer(self, question: str, grid: np.array):
         """
-        Assumed grid shape: (Channels, height, width) TODO check grid world
-        (w h c)
+        question: question / premise
+        grid: (w h c)
         c: object, type color, state
         """
 
         try:
             tree = self.parse(question)
         except:
-            print("invalid syntac, I dont understand")
-            return None  #TODO appropriate return value, perhaps exceptions
+            raise ValueError("invalid syntax")  #TODO appropriate return value, perhaps exceptions
 
         state_premise = self.to_state_premise(tree)
 
         if self.require_all and None in state_premise:
-            print("Mising Values")
-            return None
+            raise  ValueError('missing tokens')
 
-
-        objects = example_grid[..., 0].ravel()
-        colors = example_grid[..., 1].ravel()
-        states = example_grid[..., 2].ravel()
-
-        matched = []
-
-        #TODO Vectorise!
-        for pos, (obj, clr) in enumerate(zip(objects, colors)):
-            if state_premise.object_id == obj and state_premise.color_id == clr:
-                matched.append(pos)
+        states = grid[..., 2].ravel()
+        matched = self.find_objects(state_premise, grid)
 
         if len(matched) == 0:
-            print("No such object")
-            return None
+            raise ValueError("no such object")
         elif len(matched) > 1:
-            print("Multiple Objects, I dont understand")
-            return None
+            raise ValueError("too many objects")
         else:
             return states[matched[0]] == state_premise.state_id
 
 
+    def find_objects(self, premise, grid):
+        objects = grid[..., 0].ravel()
+        colors = grid[..., 1].ravel()
+        matched = np.where((premise.object_id == objects) & (premise.color_id == colors))[0]
+        return matched
 
 
+class OracleWrapper(gym.core.Wrapper):
 
+    def __init__(self, env, oracle):
 
+        super().__init__(env)
 
+        self.oracle = oracle
 
+    def _answer(self, question):
 
+        full_grid = self.env.grid.encode()
 
-
-
-
-
-
+        try:
+            ans = self.oracle.answer(question, full_grid)
+            return ans
+        except ValueError as e:
+            print(e)
 
