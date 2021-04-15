@@ -24,6 +24,9 @@ grammar = """
 # %%
 parser = Lark(grammar, start='sentence')
 
+StatePremise = namedtuple("state_premise", ["object_id", "color_id", "state_id",])
+DirectionPremise = namedtuple("direction_premise", ["object_id", "color_id", "direction"])
+
 class TreeToGrid(Transformer):
 
     def NOUN(self, noun):
@@ -32,8 +35,8 @@ class TreeToGrid(Transformer):
     def adj(self, adj):
         return COLOR_TO_IDX[adj[0]]
 
-    def direction(self, direction):
-        pass
+    def DIRECTION(self, direction):
+        return direction.value
 
     def STATE(self, state):
         return STATE_TO_IDX[state]
@@ -44,11 +47,19 @@ class TreeToGrid(Transformer):
     def state_premise(self, sent):
         noun_phrase, _, state = sent
 
-        p = namedtuple("state_premise", ["object_id", "color_id", "state_id"])
+        if len(noun_phrase) == 1:
+            return StatePremise(noun_phrase[0], None , state)
+        else:
+            return StatePremise(noun_phrase[0], noun_phrase[1], state)
+
+    def direction_premise(self, sent):
+        noun_phrase, _, direction = sent
 
         if len(noun_phrase) == 1:
-            return p(noun_phrase[0], None , state)
+            return DirectionPremise(noun_phrase[0], None , direction)
         else:
-            return p(noun_phrase[0], noun_phrase[1], state)
+            return DirectionPremise(noun_phrase[0], noun_phrase[1], direction)
+
+
 
 # %%

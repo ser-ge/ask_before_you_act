@@ -29,8 +29,34 @@ def try_gen():
 
 def test_parser():
     parser = Lark(grammar, start='sentence')
-    sentence = 'red door is closed'
-    assert parser.parse(sentence)
+    sentences = ['red door is closed', 'red door is north']
+
+    for sent in sentences:
+
+        assert parser.parse(sent)
+
+
+def test_transformer():
+
+    parser = Lark(grammar, start='sentence')
+
+    transformer = TreeToGrid()
+    sent = "red door is north"
+    tree = parser.parse(sent)
+
+    premise = transformer.transform(tree)
+
+    assert premise == (4, 0, "north")
+
+
+
+
+
+
+
+
+
+
 
 # %%
 # %% [markdown]
@@ -63,27 +89,57 @@ def test_oracle():
     p_false = 'blue door is closed'
     p_none = 'green door is open'
 
-    oracle = Oracle(parser, TreeToGrid)
+    env = gym.make("MiniGrid-MultiRoom-N4-S5-v0")
+    oracle = Oracle(parser, TreeToGrid, env)
 
-    assert  oracle.answer(p_true, example_grid)
+    assert oracle.answer(p_true, example_grid)
     assert not oracle.answer(p_false, example_grid)
 
-    with pytest.raises(ValueError):
+    from oracle import MyValueError
+    with pytest.raises(MyValueError):
         oracle.answer(p_none, example_grid)
+
+
+def test_oracle_direction():
+
+    from oracle import TRUTH, UNDEFINED, FALSE
+
+    env = gym.make("MiniGrid-Empty-8x8-v0")
+    env = OracleWrapper(env)
+
+
+    p_true = "green goal is south"
+    # p_false = "green door is open"
+    # p_none = "red door is closed"
+    # p_syntax_err = "red door is closedsdafsdaf"
+
+    ans = env._answer(p_true)
+    assert (ans[0] == TRUTH).all()
+    assert ans[1] == 0
+    # assert env._answer(p_false) == (FALSE, 0)
+    # assert env._answer(p_none) == (UNDEFINED, 0)
+    # assert env._answer(p_syntax_err) == (UNDEFINED, env.syntax_error_reward)
+
 
 
 def test_wrapper():
 
-    oracle = Oracle(parser, TreeToGrid)
-    env = gym.make("MiniGrid-MultiRoom-N4-S5-v0")
+    from oracle import TRUTH, UNDEFINED, FALSE
 
-    env = OracleWrapper(env, oracle)
+    env = gym.make("MiniGrid-MultiRoom-N4-S5-v0")
+    env = OracleWrapper(env)
 
     p_true = "green door is closed"
     p_false = "green door is open"
     p_none = "red door is closed"
+    p_syntax_err = "red door is closedsdafsdaf"
 
-    assert env._answer(p_true)
-    assert not env._answer(p_false)
-    assert env._answer(p_none) is None
+
+    assert env._answer(p_true) == (TRUTH, 0)
+    assert env._answer(p_false) == (FALSE, 0)
+    assert env._answer(p_none) == (UNDEFINED, 0)
+    assert env._answer(p_syntax_err) == (UNDEFINED, env.syntax_error_reward)
+
+
+
 
