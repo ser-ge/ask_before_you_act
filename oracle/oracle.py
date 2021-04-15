@@ -2,7 +2,7 @@ from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 import numpy as np
 import gym
 
-from lang import StatePremise, DirectionPremise, parser, TreeToGrid
+from oracle.lang import StatePremise, DirectionPremise, parser, TreeToGrid
 
 class Oracle:
 
@@ -111,7 +111,7 @@ class OracleWrapper(gym.core.Wrapper):
 
         self.syntax_error_reward = -1
 
-    def _answer(self, question):
+    def answer(self, question):
 
         full_grid = self.env.grid.encode()
 
@@ -145,5 +145,3 @@ class MyValueError(Exception):
 
 # %%
 # %%
-
-
