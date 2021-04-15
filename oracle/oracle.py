@@ -2,6 +2,7 @@ from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 import numpy as np
 import gym
 
+
 class Oracle:
 
     def __init__(self, parser, tree_to_grid, require_all=True):
@@ -9,7 +10,6 @@ class Oracle:
         self.parse = parser.parse
         self.to_state_premise = tree_to_grid().transform
         self.require_all = require_all
-
 
     def answer(self, question: str, grid: np.array):
         """
@@ -21,12 +21,12 @@ class Oracle:
         try:
             tree = self.parse(question)
         except:
-            raise ValueError("invalid syntax")  #TODO appropriate return value, perhaps exceptions
+            raise ValueError("invalid syntax")  # TODO appropriate return value, perhaps exceptions
 
         state_premise = self.to_state_premise(tree)
 
         if self.require_all and None in state_premise:
-            raise  ValueError('missing tokens')
+            raise ValueError('missing tokens')
 
         states = grid[..., 2].ravel()
         matched = self.find_objects(state_premise, grid)
@@ -37,7 +37,6 @@ class Oracle:
             raise ValueError("too many objects")
         else:
             return states[matched[0]] == state_premise.state_id
-
 
     def find_objects(self, premise, grid):
         objects = grid[..., 0].ravel()
@@ -64,4 +63,3 @@ class OracleWrapper(gym.core.Wrapper):
 
         except ValueError as e:
             print(e)
-
