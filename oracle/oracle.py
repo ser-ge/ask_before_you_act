@@ -2,41 +2,82 @@ from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 import numpy as np
 import gym
 
+from lang import StatePremise, DirectionPremise, parser, TreeToGrid
 
 class Oracle:
 
-    def __init__(self, parser, tree_to_grid, require_all=True):
+    def __init__(self, parser, tree_to_grid, env, require_all=True):
+
+        self.env = env
 
         self.parse = parser.parse
-        self.to_state_premise = tree_to_grid().transform
+        self.to_premise = tree_to_grid().transform
         self.require_all = require_all
 
-    def answer(self, question: str, grid: np.array):
+
+    def answer(self, question: str, grid=None):
         """
         question: question / premise
         grid: (w h c)
         c: object, type color, state
         """
 
+
+
         try:
             tree = self.parse(question)
         except:
-            raise ValueError("invalid syntax")  # TODO appropriate return value, perhaps exceptions
+            raise MySyntaxError("invalid syntax")  #TODO appropriate return value, perhaps exceptions
 
-        state_premise = self.to_state_premise(tree)
+        premise = self.to_premise(tree)
 
-        if self.require_all and None in state_premise:
-            raise ValueError('missing tokens')
+        # if self.require_all and None in state_premise:
+        #     raise  ValueError('missing tokens')
+
+        if grid is None:
+            grid = self.env.grid.encode()
+
+        if isinstance(premise, DirectionPremise):
+            return self.answer_direction(premise, grid)
+
+        elif isinstance(premise, StatePremise):
+            return self.answer_state(premise, grid)
+
+        else:
+            raise MyValueError("no such premise type")
+
+
+    def answer_state(self, premise, grid):
 
         states = grid[..., 2].ravel()
-        matched = self.find_objects(state_premise, grid)
+        matched = self.find_objects(premise, grid)
+        matched = self.validate_matched(matched)
 
-        if len(matched) == 0:
-            raise ValueError("no such object")
-        elif len(matched) > 1:
-            raise ValueError("too many objects")
+        return states[matched[0]] == premise.state_id
+
+    def answer_direction(self, premise, grid):
+
+        height, width, _ = grid.shape
+        matched = self.find_objects(premise, grid)
+        matched = self.validate_matched(matched)
+
+        x = matched[0] % width
+        y = matched[0] // height
+
+        direction = premise.direction
+        agent_x, agent_y  = self.env.agent_pos
+
+        if direction == 'north':
+            return y < agent_y
+        elif direction == 'south':
+            return y > agent_y
+        elif direction == 'west':
+            return x < agent_x
+        elif direction == 'east':
+            return x > agent_x
         else:
-            return states[matched[0]] == state_premise.state_id
+            raise MyValueError()
+
 
     def find_objects(self, premise, grid):
         objects = grid[..., 0].ravel()
@@ -44,14 +85,31 @@ class Oracle:
         matched = np.where((premise.object_id == objects) & (premise.color_id == colors))[0]
         return matched
 
+    def validate_matched(self, matched):
+
+        if len(matched) == 0:
+            raise MyValueError("no such object")
+        elif len(matched) > 1:
+            raise MyValueError("too many objects")
+        else:
+            return matched
+
+
+
+TRUTH = np.array([1,1])
+FALSE = np.array([0, 0])
+UNDEFINED = np.array([1, 0])
+
 
 class OracleWrapper(gym.core.Wrapper):
 
-    def __init__(self, env, oracle):
+    def __init__(self, env, syntax_error_reward=-0.1):
 
         super().__init__(env)
 
-        self.oracle = oracle
+        self.oracle = Oracle(parser=parser, tree_to_grid=TreeToGrid, env=env)
+
+        self.syntax_error_reward = -1
 
     def _answer(self, question):
 
@@ -59,7 +117,33 @@ class OracleWrapper(gym.core.Wrapper):
 
         try:
             ans = self.oracle.answer(question, full_grid)
-            return ans
 
-        except ValueError as e:
+            ans = TRUTH if ans else FALSE
+            return ans, 0
+
+        except MyValueError as e:
             print(e)
+            return (UNDEFINED, 0)
+
+        except MySyntaxError as e:
+            return (UNDEFINED, self.syntax_error_reward)
+
+    def step_question(self, statement):
+
+        answer, reward = self._answer(statement, env)
+
+
+
+
+class MySyntaxError(Exception):
+    pass
+
+class MyValueError(Exception):
+    pass
+
+
+
+# %%
+# %%
+
+
