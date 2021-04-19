@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    epochs: int = 20
+    epochs: int = 30
     batch_size : int = 256
     sequence_len: int = 10
     lstm_size : int = 128
@@ -19,10 +19,16 @@ model = Model(dataset, cfg)
 train(dataset, model, cfg)
 
 
-for temp in [0.2, 0.5, 0.7, 1, 1.5]:
+for temp in [0.5, 0.7, 0.9]:
+    print("----")
     print("Predicting with temp: ", temp)
+    print("----")
     for i in range(10):
         print(model.sample(temp))
+
+
+
+
 
 
 
