@@ -1,7 +1,7 @@
 noun = "unseen "| "empty " | "wall "  | "floor " | "door "  |  "key " | "ball " | "box " | "goal "  | "lava "  | "agent " .
 verb = "is " .
-state = "open" | "closed" | "locked" .
-direction = "north" | "south" | "west" | "east" .
+state = "open " | "closed " | "locked " .
+direction = "north " | "south " | "west " | "east " .
 adjective = "red " | "green " | "blue "| "purple "| "yellow " | "grey " .
 
 noun_phrase = adjective noun .
@@ -9,4 +9,3 @@ operator = state | direction .
 sentence = noun_phrase verb operator.
 
 main = sentence .
-

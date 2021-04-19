@@ -1,8 +1,9 @@
-from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
+#from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 import numpy as np
 import gym
 
 from oracle.lang import StatePremise, DirectionPremise, parser, TreeToGrid
+
 
 class Oracle:
 
@@ -14,7 +15,6 @@ class Oracle:
         self.to_premise = tree_to_grid().transform
         self.require_all = require_all
 
-
     def answer(self, question: str, grid=None):
         """
         question: question / premise
@@ -22,12 +22,10 @@ class Oracle:
         c: object, type color, state
         """
 
-
-
         try:
             tree = self.parse(question)
         except:
-            raise MySyntaxError("invalid syntax")  #TODO appropriate return value, perhaps exceptions
+            raise MySyntaxError("invalid syntax")  # TODO appropriate return value, perhaps exceptions
 
         premise = self.to_premise(tree)
 
@@ -46,9 +44,7 @@ class Oracle:
         else:
             raise MyValueError("no such premise type")
 
-
     def answer_state(self, premise, grid):
-
         states = grid[..., 2].ravel()
         matched = self.find_objects(premise, grid)
         matched = self.validate_matched(matched)
@@ -56,7 +52,6 @@ class Oracle:
         return states[matched[0]] == premise.state_id
 
     def answer_direction(self, premise, grid):
-
         height, width, _ = grid.shape
         matched = self.find_objects(premise, grid)
         matched = self.validate_matched(matched)
@@ -65,7 +60,7 @@ class Oracle:
         y = matched[0] // height
 
         direction = premise.direction
-        agent_x, agent_y  = self.env.agent_pos
+        agent_x, agent_y = self.env.agent_pos
 
         if direction == 'north':
             return y < agent_y
@@ -77,7 +72,6 @@ class Oracle:
             return x > agent_x
         else:
             raise MyValueError()
-
 
     def find_objects(self, premise, grid):
         objects = grid[..., 0].ravel()
@@ -95,10 +89,10 @@ class Oracle:
             return matched
 
 
-
-TRUTH = np.array([1,1])
+TRUTH = np.array([1, 1])
 FALSE = np.array([0, 0])
 UNDEFINED = np.array([1, 0])
+BAD_SYNTAX = np.array([0, 1])
 
 
 class OracleWrapper(gym.core.Wrapper):
@@ -109,7 +103,7 @@ class OracleWrapper(gym.core.Wrapper):
 
         self.oracle = Oracle(parser=parser, tree_to_grid=TreeToGrid, env=env)
 
-        self.syntax_error_reward = -1
+        self.syntax_error_reward = syntax_error_reward
 
     def answer(self, question):
 
@@ -122,17 +116,11 @@ class OracleWrapper(gym.core.Wrapper):
             return ans, 0
 
         except MyValueError as e:
-            print(e)
+            #print(e)
             return (UNDEFINED, 0)
 
         except MySyntaxError as e:
-            return (UNDEFINED, self.syntax_error_reward)
-
-    def step_question(self, statement):
-
-        answer, reward = self._answer(statement, env)
-
-
+            return (BAD_SYNTAX, self.syntax_error_reward)
 
 
 class MySyntaxError(Exception):
