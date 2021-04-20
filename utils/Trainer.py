@@ -1,3 +1,6 @@
+import torch
+from time import sleep
+
 from utils.language import adjective, noun, verb, direction, state
 import numpy as np
 
@@ -38,21 +41,38 @@ def train(env, agent, exploration=True, n_episodes=1000,
 
         # Answer
         ans, q_reward = env.answer(question)
-        q_reward += reward_modifier(question) / 100
-        avg_syntax_r += 1 / log_interval * (q_reward - avg_syntax_r)
+        # print('question',question)
+        # print('ans',ans)
+        # print('q_reward',q_reward)
+        # q_reward += reward_modifier(question) / 100
+        # avg_syntax_r += 1 / log_interval * (q_reward - avg_syntax_r)
 
-        if reward_modifier(question) == 0:
-            print(question, ans)
+        # if reward_modifier(question) == 0:
+        #     print(question, ans)
 
         # Update Q&A - inner loop REINFORCE
         # TODO: check entropy parameter to avoid deterministic collapse
-        agent.update_QA(q_reward, log_probs_qa, entropy_qa)
+        # agent.update_QA(q_reward, log_probs_qa, entropy_qa)
 
         # Act
+        # ans = np.array([1, 1])
+        # hx = torch.zeros(1, 128)
+        # print('hx.shape',hx.shape)
+        # print('ans.shape',ans.shape)
+
         a, log_prob, entropy = agent.act(state, ans, hx)
 
-        # Step
+        if episode % (log_interval*2) == 0:
+            print(question)
+            print(ans)
+            print(q_reward)
+        #     env.render()
+            # sleep(0.001)
+
+            # Step
         next_state, r, done, _ = env.step(a)
+
+
         if r > 0:
             print("Goal reached")
 
