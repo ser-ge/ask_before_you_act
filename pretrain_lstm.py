@@ -1,3 +1,5 @@
+import torch
+
 from language_model import train, Dataset, Model
 from oracle.generator import gen_phrases
 from typing import Callable
@@ -26,9 +28,6 @@ for temp in [0.5, 0.7, 0.9]:
     for i in range(10):
         print(model.sample(temp))
 
-
-
-
-
+model.save("./language_model/pre-trained.pth")
 
 

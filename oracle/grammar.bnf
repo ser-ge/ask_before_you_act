@@ -1,11 +1,11 @@
-noun = "unseen "| "empty " | "wall "  | "floor " | "door "  |  "key " | "ball " | "box " | "goal "  | "lava "  | "agent " .
+state_noun =   "door " .
+noun =  state_noun | "wall "  | "floor " |  "key " | "ball " | "box " | "goal "  | "lava "  | "agent " .
 verb = "is " .
 state = "open " | "closed " | "locked " .
 direction = "north " | "south " | "west " | "east " .
 adjective = "red " | "green " | "blue "| "purple "| "yellow " | "grey " .
 
 noun_phrase = adjective noun .
-operator = state | direction .
-sentence = noun_phrase verb operator.
+direction_sentence = noun_phrase verb direction.
 
-main = sentence .
+state_sentence = adjective state_noun verb state.
