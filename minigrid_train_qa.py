@@ -27,7 +27,7 @@ question_rnn = QuestionRNN(dataset, cfg)
 question_rnn.load('./language_model/pre-trained.pth')
 
 # env = gym.make("MiniGrid-MultiRoom-N6-v0")
-env = gym.make("MiniGrid-MultiRoom-N2-S4-v0")
+env = gym.make("MiniGrid-Empty-5x5-v0")
 
 env = OracleWrapper(env, syntax_error_reward=-0.001)  # MiniGrid-MultiRoom-N2-S4-v0, MiniGrid-Empty-5x5-v0
 env.seed(0)
