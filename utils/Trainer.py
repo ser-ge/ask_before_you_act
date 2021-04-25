@@ -33,7 +33,6 @@ def train(env, agent, exploration=True, n_episodes=1000,
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
 
-        #if episode % (log_interval*2) == 0:
         if sum(answer) == 2 or sum(answer) == 0:
             print(question)
             print(answer)

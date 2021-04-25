@@ -63,8 +63,7 @@ class BrainNet(nn.Module):
             logits, memory = self.question_rnn.process_single_input(x, memory)
             dist = self.softmax(logits.squeeze())
             m = distributions.Categorical(dist)
-            tkn_idx = self.question_rnn.temperature_sampling(dist.detach().numpy(), QUESTION_SAMPLING_TEMP)
-            tkn_idx = torch.tensor(tkn_idx)
+            tkn_idx = m.sample()
             log_probs_qa.append(m.log_prob(tkn_idx))
             entropy_qa += m.entropy().item()
             word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
