@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
 
-from models.Policy import SharedCNN
+from models.Policy import PolicyNet
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -21,7 +21,7 @@ class Agent():
         self.gamma = gamma
         self.lmbda = lmbda
 
-        self.model = SharedCNN(question_rnn, vocab_size=self.vocab_size).to(device)
+        self.model = PolicyNet(question_rnn, vocab_size=self.vocab_size).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         self.optimizer_qa = optim.Adam(self.model.parameters(), lr=learning_rate)
 
@@ -39,7 +39,7 @@ class Agent():
         # And history of states?
         qa_history = torch.rand((1, 64))
         observation = torch.FloatTensor(observation).to(device)
-        tokens, hx, log_probs_qa, entropy_qa = self.model(observation, None, None, qa_history, flag="question")
+        tokens, hx, log_probs_qa, entropy_qa = self.model.gen_question(observation, qa_history)
         output = ' '.join(tokens)
         return output, hx, log_probs_qa, entropy_qa
 
@@ -47,7 +47,7 @@ class Agent():
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
-        logits = self.model(observation, ans, hx, None, flag="policy")
+        logits = self.model.policy(observation, ans, hx)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
@@ -61,9 +61,9 @@ class Agent():
 
         for i in range(self.backward_epochs):
             # Get current V
-            V_pred = self.model(obs, ans, hx, None, flag="value").squeeze()
+            V_pred = self.model.value(obs, ans, hx).squeeze()
             # Get next V
-            next_V_pred = self.model(next_obs, ans, hx, None, flag="value").squeeze()
+            next_V_pred = self.model.value(next_obs, ans, hx).squeeze()
 
             # Compute TD error
             target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
@@ -79,7 +79,7 @@ class Agent():
             advantage = torch.FloatTensor(advantage_list).to(device)
 
             # Clipped PPO Policy Loss
-            logits = self.model(obs, ans, hx, None, flag="policy")
+            logits = self.model.policy(obs, ans, hx)
             probs = F.softmax(logits, dim=-1)
             pi_a = probs.squeeze(1).gather(1, torch.LongTensor(a.long()).to(device))
             ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob))

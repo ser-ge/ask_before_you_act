@@ -5,9 +5,9 @@ import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
 QUESTION_SAMPLING_TEMP = 0.9
-class SharedCNN(nn.Module):
+class PolicyNet(nn.Module):
     def __init__(self, question_rnn, action_dim=7, vocab_size=10):
-        super(SharedCNN, self).__init__()
+        super(PolicyNet, self).__init__()
 
         self.vocab_size = vocab_size
 
@@ -30,42 +30,100 @@ class SharedCNN(nn.Module):
         # self.question_head = nn.Linear(128, vocab_size)
         self.softmax = nn.Softmax(dim=-1)
 
+
+    def policy(self, obs, answer, word_lstm_hidden):
+        """
+        word_lstm_hidden : last hidden state
+        """
+        encoded_obs = self.encode_obs(obs)
+        x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
+        action_policy = self.policy_head(x)
+        return action_policy
+
+    def value(self, obs, answer, word_lstm_hidden):
+        encoded_obs = self.encode_obs(obs)
+        x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
+        state_value = self.value_head(x)
+        return state_value
+
+    def gen_question(self, obs, qa_history):
+
+        encoded_obs = self.encode_obs(obs)
+        hx = torch.cat((encoded_obs, qa_history.view(-1, 64)), 1)
+        cx = torch.randn(hx.shape)  # (batch, hidden_size)
+        entropy_qa = 0
+        log_probs_qa = []
+        words = ['<sos>']
+
+        memory = (hx, cx)
+
+        while words[-1] != '<eos>':
+            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0)
+            logits, memory = self.question_rnn.process_single_input(x, memory)
+            dist = self.softmax(logits.squeeze())
+            m = distributions.Categorical(dist)
+            tkn_idx = self.question_rnn.temperature_sampling(dist.detach().numpy(), QUESTION_SAMPLING_TEMP)
+            tkn_idx = torch.tensor(tkn_idx)
+            log_probs_qa.append(m.log_prob(tkn_idx))
+            entropy_qa += m.entropy().item()
+            word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
+            words.append(word)
+
+        last_hidden_state = memory[0]
+        output = words[1:-1] # remove sos and eos
+
+        return output, last_hidden_state, log_probs_qa, entropy_qa
+
+
+    def encode_obs(self, obs):
+        x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
+        # batch = x.shape[0]
+        obs_encoding = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
+        return obs_encoding
+
+
     def forward(self, x, answer, hx, qa_history, flag="policy"):
         # Shared Body
-        x = x.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
-        batch = x.shape[0]
-        x = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
+        # x = x.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
+        # batch = x.shape[0]
+        # x = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
 
-        # Split heads
         if flag == "policy":
-            x = torch.cat((x, answer, hx), 1)
-            x_pol = self.policy_head(x)
-            return x_pol
-        elif flag == "value":
-            x = torch.cat((x, answer, hx), 1)
-            x_val = self.value_head(x)
-            return x_val
+            return self.policy(x, answer, hx)
+
+        if flag == "value":
+            return self.value(x, answer, hx)
+
+        #     x = torch.cat((x, answer, hx), 1)
+        #     x_pol = self.policy_head(x)
+        #     return x_pol
+        # elif flag == "value":
+        #     x = torch.cat((x, answer, hx), 1)
+        #     x_val = self.value_head(x)
+        #     return x_val
         elif flag == "question":
-            hx = torch.cat((x, qa_history.view(-1, 64)), 1)
-            cx = torch.randn(hx.shape)  # (batch, hidden_size)
-            entropy_qa = 0
-            log_probs_qa = []
-            words = ['<sos>']
 
-            memory = (hx, cx)
-            while words[-1] != '<eos>':
-                x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0)
-                logits, memory = self.question_rnn.process_single_input(x, memory)
-                dist = self.softmax(logits.squeeze())
-                m = distributions.Categorical(dist)
-                tkn_idx = self.question_rnn.temperature_sampling(dist.detach().numpy(), QUESTION_SAMPLING_TEMP)
-                tkn_idx = torch.tensor(tkn_idx)
-                log_probs_qa.append(m.log_prob(tkn_idx))
-                entropy_qa += m.entropy().item()
-                word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
-                words.append(word)
+            return self.gen_question(x, qa_history)
+            # hx = torch.cat((x, qa_history.view(-1, 64)), 1)
+            # cx = torch.randn(hx.shape)  # (batch, hidden_size)
+            # entropy_qa = 0
+            # log_probs_qa = []
+            # words = ['<sos>']
 
-            last_hidden_state = memory[0]
-            output = words[1:-1] # remove sos and eos
+            # memory = (hx, cx)
+            # while words[-1] != '<eos>':
+            #     x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0)
+            #     logits, memory = self.question_rnn.process_single_input(x, memory)
+            #     dist = self.softmax(logits.squeeze())
+            #     m = distributions.Categorical(dist)
+            #     tkn_idx = self.question_rnn.temperature_sampling(dist.detach().numpy(), QUESTION_SAMPLING_TEMP)
+            #     tkn_idx = torch.tensor(tkn_idx)
+            #     log_probs_qa.append(m.log_prob(tkn_idx))
+            #     entropy_qa += m.entropy().item()
+            #     word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
+            #     words.append(word)
 
-            return output, last_hidden_state, log_probs_qa, entropy_qa
+            # last_hidden_state = memory[0]
+            # output = words[1:-1] # remove sos and eos
+
+            # return output, last_hidden_state, log_probs_qa, entropy_qa
