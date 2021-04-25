@@ -9,7 +9,7 @@ Transition = namedtuple('Transition', ['state', 'answer', 'word_lstm_hidden',
                                        'action', 'reward', 'reward_qa', 'next_state', 'log_prob_act',
                                        'log_prob_qa', 'entropy_act', 'entropy_qa', 'done'])
 
-def train(env, agent, exploration=True, n_episodes=1000,
+def train(env, agent, logger, exploration=True, n_episodes=1000,
              log_interval=50, verbose=False, ID=False):
     episode = 0
     episode_loss = 0
@@ -33,6 +33,7 @@ def train(env, agent, exploration=True, n_episodes=1000,
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
 
+
         if sum(answer) == 2 or sum(answer) == 0:
             print(question)
             print(answer)
@@ -45,6 +46,12 @@ def train(env, agent, exploration=True, n_episodes=1000,
 
         if reward > 0:
             print("Goal reached")
+
+        logger.log({
+            "question" : question,
+            "answer" : answer,
+            "episode" : episode
+            })
 
         next_state = next_state['image']  # Discard other info
         # Store
@@ -71,6 +78,14 @@ def train(env, agent, exploration=True, n_episodes=1000,
 
             loss_history.append(episode_loss)
             reward_history.append(sum(episode_reward))
+
+            logger.log(
+                    {
+                        "eps_reward" : sum(episode_reward),
+                        "loss" : episode_loss
+                        }
+                    )
+
             episode_reward = []
 
             episode += 1

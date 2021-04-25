@@ -58,24 +58,20 @@ action_dim = env.action_space.n
 # Store data for each run
 runs_reward = []
 
-for i in range(cfg.runs):
-    print(f"========================== TRAINING - RUN {i + 1:.0f}/{cfg.runs:.0f} ==========================")
-    # Agent
-    model = BrainNet(question_rnn)
-    agent = Agent(model, cfg.lr, cfg.gamma, cfg.clip, cfg.value_param, cfg.entropy_param, lmbda=cfg.lmbda)
+#TODO incoperate many runs for average results
 
-    print(agent.model)
-    _, train_reward = train(env, agent, exploration=True,
-                               n_episodes=cfg.N_eps, log_interval=cfg.train_log_interval,
-                               verbose=True)
+print(f"========================== TRAINING - RUN {1 + 1:.0f}/{cfg.runs:.0f} ==========================")
+# Agent
+model = BrainNet(question_rnn)
+agent = Agent(model, cfg.lr, cfg.gamma, cfg.clip, cfg.value_param, cfg.entropy_param, lmbda=cfg.lmbda)
 
-    wandb.log(
-            {
-                "train/reward"
-                }
-            )
-    # store result for every run
-    runs_reward.append(train_reward)
+print(agent.model)
+_, train_reward = train(env, agent, wandb, exploration=True,
+                           n_episodes=cfg.N_eps, log_interval=cfg.train_log_interval,
+                           verbose=True)
+
+# store result for every run
+runs_reward.append(train_reward)
 
 
 
