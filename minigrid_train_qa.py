@@ -61,7 +61,6 @@ for i in range(runs):
     model = BrainNet(question_rnn)
     agent = Agent(model, lr, gamma, clip, value_param, entropy_param)
 
-    print(agent.model)
     _, train_reward = train(env, agent, exploration=True,
                                n_episodes=N_eps, log_interval=train_log_interval,
                                verbose=True)
