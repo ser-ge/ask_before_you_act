@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
@@ -14,7 +13,6 @@ class Agent():
     def __init__(self, model, learning_rate=0.001,
                  gamma=0.99, clip_param=0.2, value_param=1, entropy_param=0.01,
                  lmbda=0.95, backward_epochs=1):
-
 
         self.gamma = gamma
         self.lmbda = lmbda
@@ -75,7 +73,7 @@ class Agent():
                                 log_prob_act, state, word_lstm_hidden)
 
         # Q&A Loss
-        L_qa = ((reward_qa+advantage) * log_prob_qa + 0.05 * entropy_qa).mean().to(device)
+        L_qa = 0 #((reward_qa+advantage) * log_prob_qa + 0.05 * entropy_qa).mean().to(device)
 
         # Entropy regularizer
         L_entropy = self.entropy_param * entropy_act.detach().mean()

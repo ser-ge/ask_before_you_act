@@ -1,9 +1,7 @@
-import torch
-from time import sleep
-
-from utils.language import adjective, noun, verb, direction, state
 import numpy as np
 from collections import namedtuple
+
+import torch
 
 Transition = namedtuple('Transition', ['state', 'answer', 'word_lstm_hidden',
                                        'action', 'reward', 'reward_qa', 'next_state', 'log_prob_act',
@@ -29,23 +27,19 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
 
         # Answer
         answer, reward_qa = env.answer(question)
+        avg_syntax_r += 1/log_interval * (reward_qa - avg_syntax_r)
+        answer = [0, 0]
+        word_lstm_hidden = torch.zeros_like(word_lstm_hidden)
 
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
 
 
-        if sum(answer) == 2 or sum(answer) == 0:
-            print(question)
-            print(answer)
-            print(reward_qa)
-            # env.render()
-            # sleep(0.001)
-
         # Step
         next_state, reward, done, _ = env.step(action)
 
-        if reward > 0:
-            print("Goal reached")
+        # if reward > 0:
+        #     print("Goal reached")
 
         logger.log({
             "question" : question,
