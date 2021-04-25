@@ -3,7 +3,7 @@ import gym
 import gym_minigrid
 
 from agents.Agent import Agent
-from ask_before_you_act.models.Policy import BrainNet
+from models.Policy import BrainNet
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
 from utils.language import vocab
