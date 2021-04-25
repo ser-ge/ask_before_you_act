@@ -3,6 +3,11 @@ from time import sleep
 
 from utils.language import adjective, noun, verb, direction, state
 import numpy as np
+from collections import namedtuple
+
+Transition = namedtuple('Transition', ['state', 'answer', 'word_lstm_hidden',
+                                       'action', 'reward', 'reward_qa', 'next_state', 'log_prob_act',
+                                       'log_prob_qa', 'entropy_act', 'entropy_qa', 'done'])
 
 def train(env, agent, exploration=True, n_episodes=1000,
              log_interval=50, verbose=False, ID=False):
@@ -20,40 +25,42 @@ def train(env, agent, exploration=True, n_episodes=1000,
 
     while episode < n_episodes:
         # Ask - TODO pass qa_history
-        question, hx, log_probs_qa, entropy_qa = agent.ask(state)
+        question, word_lstm_hidden, log_prob_qa, entropy_qa = agent.ask(state)
 
         # Answer
-        ans, q_reward = env.answer(question)
+        answer, reward_qa = env.answer(question)
 
         # Act
-        a, log_prob, entropy = agent.act(state, ans, hx)
+        action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
 
-        if episode % (log_interval*2) == 0:
+        #if episode % (log_interval*2) == 0:
+        if sum(answer) == 2 or sum(answer) == 0:
             print(question)
-            print(ans)
-            print(q_reward)
-        #     env.render()
+            print(answer)
+            print(reward_qa)
+            # env.render()
             # sleep(0.001)
 
-            # Step
-        next_state, r, done, _ = env.step(a)
+        # Step
+        next_state, reward, done, _ = env.step(action)
 
-        if r > 0:
+        if reward > 0:
             print("Goal reached")
 
-        r += q_reward # TODO store
         next_state = next_state['image']  # Discard other info
         # Store
         if exploration:
-            agent.store((state, ans, hx, a, r, next_state,
-                         log_prob.item(), entropy.item(), done))
+            t = Transition(state, answer, word_lstm_hidden, action, reward,
+                           reward_qa, next_state, log_prob_act.item(), log_prob_qa,
+                           entropy_act.item(), entropy_qa, done)
+            agent.store(t)
 
         # Advance
         state = next_state
         step += 1
 
         # Logging
-        episode_reward.append(r)
+        episode_reward.append(reward)
 
         if done:
             # Update
@@ -69,7 +76,7 @@ def train(env, agent, exploration=True, n_episodes=1000,
 
             episode += 1
 
-            if (episode) % log_interval == 0:
+            if episode % log_interval == 0:
                 if verbose:
                     avg_R = np.sum(reward_history[-log_interval:]) / log_interval
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}")

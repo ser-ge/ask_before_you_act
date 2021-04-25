@@ -5,9 +5,11 @@ import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
 QUESTION_SAMPLING_TEMP = 0.9
-class PolicyNet(nn.Module):
+
+
+class BrainNet(nn.Module):
     def __init__(self, question_rnn, action_dim=7, vocab_size=10):
-        super(PolicyNet, self).__init__()
+        super().__init__()
 
         self.vocab_size = vocab_size
 
@@ -29,7 +31,6 @@ class PolicyNet(nn.Module):
         # self.question_rnn = nn.LSTMCell(self.vocab_size, 128)  # (input_size, hidden_size)
         # self.question_head = nn.Linear(128, vocab_size)
         self.softmax = nn.Softmax(dim=-1)
-
 
     def policy(self, obs, answer, word_lstm_hidden):
         """
@@ -69,18 +70,18 @@ class PolicyNet(nn.Module):
             word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
             words.append(word)
 
+        entropy_qa /= len(words)
+
         last_hidden_state = memory[0]
-        output = words[1:-1] # remove sos and eos
+        output = words[1:-1]  # remove sos and eos
 
         return output, last_hidden_state, log_probs_qa, entropy_qa
-
 
     def encode_obs(self, obs):
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
         # batch = x.shape[0]
         obs_encoding = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
         return obs_encoding
-
 
     def forward(self, x, answer, hx, qa_history, flag="policy"):
         # Shared Body

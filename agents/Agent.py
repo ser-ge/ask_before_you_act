@@ -6,22 +6,20 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
 
-from models.Policy import PolicyNet
+from ask_before_you_act.utils.Trainer import Transition
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Agent():
-    def __init__(self, state_dim, action_dim, question_rnn, vocab, hidden_dim=64, learning_rate=0.001,
+    def __init__(self, model, learning_rate=0.001,
                  gamma=0.99, clip_param=0.2, value_param=1, entropy_param=0.01,
                  lmbda=0.95, backward_epochs=1):
-        self.vocab = vocab
-        self.vocab_size = len(vocab)
 
-        self.hidden_dim = hidden_dim
+
         self.gamma = gamma
         self.lmbda = lmbda
 
-        self.model = PolicyNet(question_rnn, vocab_size=self.vocab_size).to(device)
+        self.model = model.to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         self.optimizer_qa = optim.Adam(self.model.parameters(), lr=learning_rate)
 
@@ -57,101 +55,84 @@ class Agent():
 
     def update(self):
         # torch.autograd.set_detect_anomaly(True)
-        obs, ans, hx, a, reward, next_obs, done, log_prob, entropy = self.get_batch()
+        state, answer, word_lstm_hidden, action, reward, reward_qa, next_state, \
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done = self.get_batch()
 
-        for i in range(self.backward_epochs):
-            # Get current V
-            V_pred = self.model.value(obs, ans, hx).squeeze()
-            # Get next V
-            next_V_pred = self.model.value(next_obs, ans, hx).squeeze()
+        # Get current V
+        V_pred = self.model.value(state, answer, word_lstm_hidden).squeeze()
+        # Get next V
+        next_V_pred = self.model.value(next_state, answer, word_lstm_hidden).squeeze()
 
-            # Compute TD error
-            target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
-            td_error = (target - V_pred).detach()
+        # Compute TD error
+        target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
+        td_error = (target - V_pred).detach()
 
-            # Generalised Advantage Estimation
-            advantage_list = []
-            advantage = 0.0
-            for delta in reversed(td_error):
-                advantage = self.gamma * self.lmbda * advantage + delta
-                advantage_list.append([advantage])
-            advantage_list.reverse()
-            advantage = torch.FloatTensor(advantage_list).to(device)
+        # Generalised Advantage Estimation
+        advantage = self.gae(td_error)
 
-            # Clipped PPO Policy Loss
-            logits = self.model.policy(obs, ans, hx)
-            probs = F.softmax(logits, dim=-1)
-            pi_a = probs.squeeze(1).gather(1, torch.LongTensor(a.long()).to(device))
-            ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob))
-            surrogate1 = ratio * advantage
-            surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
-            L_clip = torch.min(surrogate1, surrogate2).mean()
+        # Clipped PPO Policy Loss
+        L_clip = self.clip_loss(action, advantage, answer,
+                                log_prob_act, state, word_lstm_hidden)
 
-            # Entropy regularizer
-            L_entropy = self.entropy_param * entropy.detach().mean()
+        # Q&A Loss
+        L_qa = ((reward_qa+advantage) * log_prob_qa + 0.05 * entropy_qa).mean().to(device)
 
-            # Value function loss
-            L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
+        # Entropy regularizer
+        L_entropy = self.entropy_param * entropy_act.detach().mean()
 
-            total_loss = -(L_clip - L_value + L_entropy).to(device)
-            # Update params
-            self.optimizer.zero_grad()
-            total_loss.backward()
-            # total_loss.backward(retain_graph=True)
-            self.optimizer.step()
+        # Value function loss
+        L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
+
+        total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
+
+        # Update params
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        # total_loss.backward(retain_graph=True)
+        self.optimizer.step()
+
         return total_loss.item()
 
-    def update_QA(self, reward, log_prob, entropy):
-        for i in range(1):
-            # Reinforce Loss - TODO: check entropy parametr to avoid deterministic collapse
-            total_loss = -(reward * torch.stack(log_prob).mean()
-                           + 0.05 * entropy).to(device)
+    def gae(self, td_error):
+        advantage_list = []
+        advantage = 0.0
+        for delta in reversed(td_error):
+            advantage = self.gamma * self.lmbda * advantage + delta
+            advantage_list.append([advantage])
+        advantage_list.reverse()
+        advantage = torch.FloatTensor(advantage_list).to(device)
+        return advantage
 
-            print('total_loss q/a',total_loss)
-            # Update params
-            self.optimizer.zero_grad()
-            total_loss.backward(retain_graph=False)
-            # total_loss.backward(retain_graph=True)
-            self.optimizer_qa.step()
-        return total_loss.item()
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, word_lstm_hidden):
+        logits = self.model.policy(state, answer, word_lstm_hidden)
+        probs = F.softmax(logits, dim=-1)
+        pi_a = probs.gather(1, torch.LongTensor(action.unsqueeze(-1).long())).to(device)
+        ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
+        surrogate1 = ratio * advantage
+        surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
+        L_clip = torch.min(surrogate1, surrogate2).mean()
+        return L_clip
 
     def store(self, transition):
         self.data.append(transition)
 
     def get_batch(self):
-        obs_batch = []
-        ans_batch = []
-        hx_batch = []
-        a_batch = []
-        r_batch = []
-        next_obs_batch = []
-        prob_batch = []
-        entropy_batch = []
-        done_batch = []
-        for transition in self.data:
-            obs, ans, hx, action, reward, next_obs, prob, entropy, done = transition
+        trans = Transition(*zip(*self.data))
 
-            obs_batch.append(obs)
-            ans_batch.append(ans)
-            hx_batch.append(hx)
-            a_batch.append([action])
-            r_batch.append([reward])
-            next_obs_batch.append(next_obs)
-            prob_batch.append([prob])
-            entropy_batch.append([entropy])
-            done_bool = 0 if done else 1
-            done_batch.append([done_bool])
-
-        obs = torch.FloatTensor(obs_batch).to(device)
-        ans = torch.FloatTensor(ans_batch).to(device)
-        hx = torch.cat(hx_batch)
-        a = torch.FloatTensor(a_batch).to(device)
-        r = torch.FloatTensor(r_batch).to(device)
-        next_obs = torch.FloatTensor(next_obs_batch).to(device)
-        prob = torch.FloatTensor(prob_batch).to(device)
-        entropy = torch.FloatTensor(entropy_batch).to(device)
-        done = torch.FloatTensor(done_batch).to(device)
+        state = torch.FloatTensor(trans.state).to(device)
+        answer = torch.FloatTensor(trans.answer).to(device)
+        word_lstm_hidden = torch.cat(trans.word_lstm_hidden)
+        action = torch.FloatTensor(trans.action).to(device)
+        reward = torch.FloatTensor(trans.reward).to(device)
+        reward_qa = torch.FloatTensor(trans.reward_qa).to(device)
+        next_state = torch.FloatTensor(trans.next_state).to(device)
+        log_prob_act = torch.FloatTensor(trans.log_prob_act).to(device)
+        log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(device), trans.log_prob_qa)))
+        entropy_act = torch.FloatTensor(trans.entropy_act).to(device)
+        entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
+        done = torch.FloatTensor(trans.done).to(device)
 
         self.data = []
 
-        return obs, ans, hx, a, r, next_obs, done, prob, entropy
+        return state, answer, word_lstm_hidden, action, reward, reward_qa, next_state, \
+               log_prob_act, log_prob_qa, entropy_act, entropy_qa, done

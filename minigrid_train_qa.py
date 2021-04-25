@@ -3,6 +3,7 @@ import gym
 import gym_minigrid
 
 from agents.Agent import Agent
+from ask_before_you_act.models.Policy import BrainNet
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
 from utils.language import vocab
@@ -28,8 +29,8 @@ question_rnn.load('./language_model/pre-trained.pth')
 
 # env = gym.make("MiniGrid-MultiRoom-N6-v0")
 env = gym.make("MiniGrid-Empty-5x5-v0")
-
-env = OracleWrapper(env, syntax_error_reward=-0.001)  # MiniGrid-MultiRoom-N2-S4-v0, MiniGrid-Empty-5x5-v0
+# MiniGrid-MultiRoom-N2-S4-v0, MiniGrid-Empty-5x5-v0
+env = OracleWrapper(env, syntax_error_reward=-0.001, undefined_error_reward=-0.001)
 env.seed(0)
 state_dim = env.observation_space['image'].shape
 action_dim = env.action_space.n
@@ -57,9 +58,8 @@ runs_reward = []
 for i in range(runs):
     print(f"========================== TRAINING - RUN {i + 1:.0f}/{runs:.0f} ==========================")
     # Agent
-
-    agent = Agent(state_dim, action_dim, question_rnn, vocab, hidden_dim,
-                     lr, gamma, clip, value_param, entropy_param)
+    model = BrainNet(question_rnn)
+    agent = Agent(model, lr, gamma, clip, value_param, entropy_param)
 
     print(agent.model)
     _, train_reward = train(env, agent, exploration=True,

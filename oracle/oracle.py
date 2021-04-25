@@ -97,13 +97,14 @@ BAD_SYNTAX = np.array([0, 1])
 
 class OracleWrapper(gym.core.Wrapper):
 
-    def __init__(self, env, syntax_error_reward=-0.1):
+    def __init__(self, env, syntax_error_reward=-0.1, undefined_error_reward=-0.1):
 
         super().__init__(env)
 
         self.oracle = Oracle(parser=parser, tree_to_grid=TreeToGrid, env=env)
 
         self.syntax_error_reward = syntax_error_reward
+        self.undefined_error_reward = undefined_error_reward
 
     def answer(self, question):
 
@@ -115,11 +116,10 @@ class OracleWrapper(gym.core.Wrapper):
             ans = TRUTH if ans else FALSE
             return ans, 0
 
-        except MyValueError as e:
-            #print(e)
-            return (UNDEFINED, 0)
+        except MyValueError:
+            return (UNDEFINED, self.undefined_error_reward)
 
-        except MySyntaxError as e:
+        except MySyntaxError:
             return (BAD_SYNTAX, self.syntax_error_reward)
 
 
@@ -128,8 +128,3 @@ class MySyntaxError(Exception):
 
 class MyValueError(Exception):
     pass
-
-
-
-# %%
-# %%
