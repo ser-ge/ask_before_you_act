@@ -11,7 +11,7 @@ grammar = """
     verb: VERB
     adj: ADJ
     state: STATE
-    NOUN: "unseen"| "empty" | "wall"  | "floor" | "door"  |  "key" | "ball "| "box" | "goal"  | "lava"  | "agent"
+    NOUN: "wall" | "floor" | "door" | "key" | "ball" | "box" | "goal"  | "lava"  | "agent"
     STATE : "open" | "closed" | "locked"
     VERB: "is"
     ADJ : "red" | "green" | "blue"| "purple"| "yellow" | "grey"

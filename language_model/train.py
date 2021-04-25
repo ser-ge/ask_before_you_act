@@ -6,10 +6,6 @@ from torch.utils.data import DataLoader
 from .model import Model
 from .dataset import Dataset
 
-
-
-from dataclasses import dataclass
-
 def train(dataset, model, cfg):
     model.train()
 
@@ -40,6 +36,6 @@ def train(dataset, model, cfg):
 
             print({ 'epoch': epoch, 'batch': batch, 'loss': loss.item() })
 
-
+    return model
 
 

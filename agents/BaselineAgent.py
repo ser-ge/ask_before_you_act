@@ -8,6 +8,7 @@ import torch.distributions as distributions
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+torch.manual_seed(0)
 
 class SharedCNN(nn.Module):
     def __init__(self, action_dim=7):
@@ -63,6 +64,7 @@ class PPOAgent():
     def act(self, observation, exploration=True):
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
+
         logits = self.model(observation, flag="policy")
         action_prob = F.softmax(logits.squeeze()/self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
@@ -76,7 +78,9 @@ class PPOAgent():
 
         for i in range(self.backward_epochs):
             # Get current V
+
             V_pred = self.model(obs, flag="value").squeeze()
+
             # Get next V
             next_V_pred = self.model(next_obs, flag="value").squeeze()
 
