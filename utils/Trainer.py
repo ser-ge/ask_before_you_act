@@ -8,7 +8,7 @@ Transition = namedtuple('Transition', ['state', 'answer', 'word_lstm_hidden',
                                        'log_prob_qa', 'entropy_act', 'entropy_qa', 'done'])
 
 def train(env, agent, logger, exploration=True, n_episodes=1000,
-             log_interval=50, verbose=False, ID=False):
+             log_interval=50, verbose=False):
     episode = 0
     episode_loss = 0
 
@@ -29,7 +29,7 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
         answer, reward_qa = env.answer(question)
         avg_syntax_r += 1/log_interval * (reward_qa - avg_syntax_r)
         answer = [0, 0]
-        word_lstm_hidden = torch.zeros_like(word_lstm_hidden)
+        word_lstm_hidden = torch.zeros_like(word_lstm_hidden).detach()
 
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)

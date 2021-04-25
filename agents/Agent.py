@@ -9,7 +9,8 @@ from utils.Trainer import Transition
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class Agent():
+
+class Agent:
     def __init__(self, model, learning_rate=0.001,
                  gamma=0.99, clip_param=0.2, value_param=1, entropy_param=0.01,
                  lmbda=0.95, backward_epochs=1):
