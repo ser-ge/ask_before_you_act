@@ -44,9 +44,9 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 500
+    N_eps: float = 3000
     train_log_interval: float = 25
-    env_name: str = "MiniGrid-Empty-5x5-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -128,11 +128,12 @@ def plot_experiment(runs_reward, total_runs, window=25):
     ax.set_xlabel("Episodes")
     plt.tight_layout()
     plt.show()
-    fig.savefig("./figures/figure_run" + str(total_runs) + ".png")
+    fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
 
 
 if __name__ == "__main__":
     # Store data for each run
+    signature = str(random.randint(10000, 90000))
     runs_reward = []
     total_runs = 20
     for ans_random in (True, False):
@@ -144,7 +145,7 @@ if __name__ == "__main__":
             runs_reward.append(train_reward)
 
     plot_experiment(runs_reward, total_runs)
-    np.save("./data/runs_reward" + str(total_runs) + ".npy", runs_reward)
+    np.save("./data/runs_reward" + str(total_runs) + signature +".npy", runs_reward)
 
 
 

@@ -10,7 +10,7 @@ import numpy as np
 
 # Environment
 # env = gym.make("MiniGrid-Empty-8x8-v0")
-env = gym.make("MiniGrid-Empty-5x5-v0")
+env = gym.make("MiniGrid-MultiRoom-N2-S4-v0")
 
 env.seed(1)
 torch.manual_seed(1)
