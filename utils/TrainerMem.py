@@ -63,11 +63,8 @@ def train(
 
         answer = answer.decode()
 
-        avg_syntax_r += (
-            1 / log_interval * (reward_qa - avg_syntax_r)
-        )  # TODO double check if this is correct
-        # answer = [0, 0]
-        # word_lstm_hidden = torch.zeros_like(word_lstm_hidden).detach()
+        # TODO double check if this is correct
+        avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q)
