@@ -121,15 +121,15 @@ class Agent:
 
         state = torch.FloatTensor(trans.state).to(device)
         answer = torch.FloatTensor(trans.answer).to(device)
-        word_lstm_hidden = None
+        word_lstm_hidden = torch.cat(trans.word_lstm_hidden)
         action = torch.FloatTensor(trans.action).to(device).view(-1,1)
         reward = torch.FloatTensor(trans.reward).to(device).view(-1,1)
-        reward_qa = None
+        reward_qa = torch.FloatTensor(trans.reward_qa).to(device)
         next_state = torch.FloatTensor(trans.next_state).to(device)
         log_prob_act = torch.FloatTensor(trans.log_prob_act).to(device).view(-1,1)
-        log_prob_qa = None
+        log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(device), trans.log_prob_qa)))
         entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1,1)
-        entropy_qa = None
+        entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
         done = torch.BoolTensor(trans.done).to(device).view(-1,1)
 
         self.data = []

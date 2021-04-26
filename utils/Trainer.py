@@ -23,14 +23,14 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
 
     while episode < n_episodes:
         # Ask - TODO pass qa_history
-        # question, word_lstm_hidden, log_prob_qa, entropy_qa = agent.ask(state)
+        question, word_lstm_hidden, log_prob_qa, entropy_qa = agent.ask(state)
 
         # Answer
-        # answer, reward_qa = env.answer(question)
-        # avg_syntax_r += 1/log_interval * (reward_qa - avg_syntax_r)
+        answer, reward_qa = env.answer(question)
+        avg_syntax_r += 1/log_interval * (reward_qa - avg_syntax_r)
         answer = [0, 0]
-        # word_lstm_hidden = torch.zeros_like(word_lstm_hidden).detach()
-        word_lstm_hidden = None
+        word_lstm_hidden = torch.zeros_like(word_lstm_hidden).detach()
+
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
 
@@ -42,7 +42,7 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
         #     print("Goal reached")
 
         logger.log({
-            "question" : "",
+            "question" : question,
             "answer" : answer,
             "episode" : episode
             })
@@ -51,8 +51,8 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
         # Store
         if exploration:
             t = Transition(state, answer, word_lstm_hidden, action, reward,
-                           0, next_state, log_prob_act.item(), None,
-                           entropy_act.item(), None, done)
+                           reward_qa, next_state, log_prob_act.item(), log_prob_qa,
+                           entropy_act.item(), entropy_qa, done)
             agent.store(t)
 
         # Advance
