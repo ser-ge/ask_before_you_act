@@ -44,7 +44,7 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 250
+    N_eps: float = 50
     train_log_interval: float = 5
     env_name: str = "MiniGrid-Empty-5x5-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
@@ -58,6 +58,7 @@ class Config:
 
 def run_experiment(USE_WANDB, **kwargs):
     cfg = Config(**kwargs)
+    print(cfg.ans_random)
 
     if USE_WANDB:
         wandb.init(project='ask_before_you_act', config=asdict(cfg))
@@ -108,17 +109,21 @@ def run_experiment(USE_WANDB, **kwargs):
     return train_reward
 
 
-def plot_experiment(runs_reward, total_runs):
+def plot_experiment(runs_reward, total_runs, window=10):
     sns.set()
 
     fig = plt.figure(figsize=(9, 7))
     ax = fig.add_subplot(111)
 
-    window = 10
-    avg = pd.DataFrame(np.array(runs_reward)).T.rolling(window).mean().T
+    avg_rnd = pd.DataFrame(np.array(runs_reward[:total_runs])).T.rolling(window).mean().T
+    avg_good = pd.DataFrame(np.array(runs_reward[total_runs:])).T.rolling(window).mean().T
 
-    df_reward_v2 = pd.DataFrame(avg).melt()
-    sns.lineplot(ax=ax, x='variable', y='value', data=df_reward_v2)
+    reward_rnd = pd.DataFrame(avg_rnd).melt()
+    reward_good = pd.DataFrame(avg_good).melt()
+
+    sns.lineplot(ax=ax, x='variable', y='value', data=reward_rnd, legend='brief', label="Random")
+    sns.lineplot(ax=ax, x='variable', y='value', data=reward_good, legend='brief', label="Good")
+
     ax.set_title(f"Reward training curve over {total_runs} runs")
     ax.set_ylabel(f"{window} episode moving average of mean agent\'s reward")
     ax.set_xlabel("Episodes")
@@ -130,12 +135,13 @@ if __name__ == "__main__":
     # Store data for each run
     runs_reward = []
     total_runs = 3
-    for runs in range(total_runs):
-        print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
-        train_reward = run_experiment(True)
+    for ans_random in (True, False):
+        for runs in range(total_runs):
+            print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
+            train_reward = run_experiment(False, ans_random=ans_random)
 
-        # Store result for every run
-        runs_reward.append(train_reward)
+            # Store result for every run
+            runs_reward.append(train_reward)
 
     plot_experiment(runs_reward, total_runs)
 
