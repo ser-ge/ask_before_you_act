@@ -1,4 +1,6 @@
-#from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
+# from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
+import random
+
 import numpy as np
 import gym
 
@@ -89,11 +91,29 @@ class Oracle:
             return matched
 
 
-TRUTH = np.array([1, 1])
-FALSE = np.array([0, 0])
-UNDEFINED = np.array([1, 0])
-BAD_SYNTAX = np.array([0, 1])
+from enum import Enum
 
+class Answer(Enum):
+    TRUTH = 1
+    FALSE = 2
+    UNDEFINED = 3
+    BAD_SYNTAX = 4
+
+    def decode(self):
+        return {
+            "TRUTH": np.array([1, 1]),
+            "FALSE": np.array([0, 0]),
+            "UNDEFINED": np.array([1, 0]),
+            "BAD_SYNTAX": np.array([0, 1])
+        }[self.name]
+
+    def __str__(self):
+        return {
+            "TRUTH": 'True',
+            "FALSE": 'False',
+            "UNDEFINED": 'Undefined',
+            "BAD_SYNTAX": 'Bad syntax',
+        }[self.name]
 
 class OracleWrapper(gym.core.Wrapper):
 
@@ -113,23 +133,24 @@ class OracleWrapper(gym.core.Wrapper):
 
         try:
 
-            if self.ans_random:
-                ans = list(np.rando.randint((1,1)))
+            if self.ans_random:  # TODO still penalize if syntax is incorrect?
+                ans = random.choice(list(Answer))
             else:
                 ans = self.oracle.answer(question, full_grid)
-                ans = TRUTH if ans else FALSE
+                ans = Answer.TRUTH if ans else Answer.FALSE
 
             return ans, 0
 
         except MyValueError:
-            return (UNDEFINED, self.undefined_error_reward)
+            return (Answer.UNDEFINED, self.undefined_error_reward)
 
         except MySyntaxError:
-            return (BAD_SYNTAX, self.syntax_error_reward)
+            return (Answer.BAD_SYNTAX, self.syntax_error_reward)
 
 
 class MySyntaxError(Exception):
     pass
+
 
 class MyValueError(Exception):
     pass

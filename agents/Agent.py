@@ -75,7 +75,8 @@ class Agent:
                                 log_prob_act, state, word_lstm_hidden)
 
         # Q&A Loss
-        L_qa = 0 #((reward_qa+advantage) * log_prob_qa + 0.05 * entropy_qa).mean().to(device)
+        L_qa = ((reward_qa + advantage.squeeze()) * log_prob_qa + 0.05 * entropy_qa).mean().to(device)
+        # L_qa = ((reward_qa) * log_prob_qa + 0.05 * entropy_qa).mean().to(device)
 
         # Entropy regularizer
         L_entropy = self.entropy_param * entropy_act.detach().mean()
@@ -84,11 +85,11 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
+        # total_loss = - (L_qa).to(device)
 
         # Update params
         self.optimizer.zero_grad()
         total_loss.backward()
-        # total_loss.backward(retain_graph=True)
         self.optimizer.step()
 
         return total_loss.item()

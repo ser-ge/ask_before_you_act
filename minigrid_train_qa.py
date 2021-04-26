@@ -18,7 +18,7 @@ from dataclasses import dataclass, asdict
 
 import wandb
 
-USE_WANDB = False
+USE_WANDB = True
 
 @dataclass
 class Config:
@@ -41,7 +41,9 @@ class Config:
     runs : float = 1
     env_name : str = "MiniGrid-Empty-5x5-v0"
     ans_random : bool = False
-
+    undefined_error_reward: float = -0.1
+    syntax_error_reward: float = -0.2
+    pre_trained_lstm: bool = True
 
 cfg = Config()
 
@@ -58,7 +60,8 @@ else:
 
 dataset = Dataset(cfg)
 question_rnn = QuestionRNN(dataset, cfg)
-question_rnn.load('./language_model/pre-trained.pth')
+if cfg.pre_trained_lstm:
+    question_rnn.load('./language_model/pre-trained.pth')
 
 env = gym.make(cfg.env_name)
 env.seed(1)
@@ -66,7 +69,7 @@ np.random.seed(1)
 torch.manual_seed(1)
 random.seed(1)
 
-env = OracleWrapper(env, syntax_error_reward=-0.001, undefined_error_reward=-0.001, ans_random=cfg.ans_random)
+env = OracleWrapper(env, syntax_error_reward=cfg.syntax_error_reward, undefined_error_reward=cfg.undefined_error_reward, ans_random=cfg.ans_random)
 state_dim = env.observation_space['image'].shape
 action_dim = env.action_space.n
 
