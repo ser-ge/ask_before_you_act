@@ -18,7 +18,6 @@ class SharedCNN(nn.Module):
 
         self.policy_head = nn.Linear(64, action_dim)
         self.value_head = nn.Linear(64, 1)
-        self.activation = nn.ReLU()
 
     def forward(self, x, flag="policy"):
         # Shared Body

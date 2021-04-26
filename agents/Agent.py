@@ -62,8 +62,9 @@ class Agent:
         # Get next V
         next_V_pred = self.model.value(next_state, answer, word_lstm_hidden).squeeze()
 
+        mask = ~done # 1 if not done, 0 of done
         # Compute TD error
-        target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
+        target = reward.squeeze().to(device) + self.gamma * next_V_pred * mask.squeeze().to(device)
         td_error = (target - V_pred).detach()
 
         # Generalised Advantage Estimation
@@ -105,7 +106,7 @@ class Agent:
     def clip_loss(self, action, advantage, answer, log_prob_act, state, word_lstm_hidden):
         logits = self.model.policy(state, answer, word_lstm_hidden)
         probs = F.softmax(logits, dim=-1)
-        pi_a = probs.gather(1, torch.LongTensor(action.unsqueeze(-1).long())).to(device)
+        pi_a = probs.squeeze(1).gather(1, torch.LongTensor(action.long()).to(device))
         ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
         surrogate1 = ratio * advantage
         surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
@@ -120,16 +121,16 @@ class Agent:
 
         state = torch.FloatTensor(trans.state).to(device)
         answer = torch.FloatTensor(trans.answer).to(device)
-        word_lstm_hidden = torch.cat(trans.word_lstm_hidden)
-        action = torch.FloatTensor(trans.action).to(device)
-        reward = torch.FloatTensor(trans.reward).to(device)
-        reward_qa = torch.FloatTensor(trans.reward_qa).to(device)
+        word_lstm_hidden = None
+        action = torch.FloatTensor(trans.action).to(device).view(-1,1)
+        reward = torch.FloatTensor(trans.reward).to(device).view(-1,1)
+        reward_qa = None
         next_state = torch.FloatTensor(trans.next_state).to(device)
-        log_prob_act = torch.FloatTensor(trans.log_prob_act).to(device)
-        log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(device), trans.log_prob_qa)))
-        entropy_act = torch.FloatTensor(trans.entropy_act).to(device)
-        entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
-        done = torch.FloatTensor(trans.done).to(device)
+        log_prob_act = torch.FloatTensor(trans.log_prob_act).to(device).view(-1,1)
+        log_prob_qa = None
+        entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1,1)
+        entropy_qa = None
+        done = torch.BoolTensor(trans.done).to(device).view(-1,1)
 
         self.data = []
 

@@ -27,6 +27,8 @@ def GAEtrain(env, agent, exploration=True, n_episodes=1000,
         # Step
         next_state, r, done, _ = env.step(a)
         next_state = next_state['image']  # Discard other info
+        # env.render()
+
         # Store
         if exploration:
             agent.store((state, a, r, next_state,

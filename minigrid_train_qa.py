@@ -1,6 +1,10 @@
 # Environment
+import random
+
 import gym
 import gym_minigrid
+import torch
+import numpy as np
 
 from agents.Agent import Agent
 from models.brain_net import BrainNet
@@ -13,6 +17,8 @@ from typing import Callable
 from dataclasses import dataclass, asdict
 
 import wandb
+
+USE_WANDB = False
 
 @dataclass
 class Config:
@@ -41,16 +47,26 @@ cfg = Config()
 
 # %%
 
-wandb.init(project='ask_before_you_act', config=asdict(cfg))
-
+if USE_WANDB:
+    wandb.init(project='ask_before_you_act', config=asdict(cfg))
+    logger = wandb
+else:
+    class Logger:
+        def log(self, *args):
+            pass
+    logger = Logger()
 
 dataset = Dataset(cfg)
 question_rnn = QuestionRNN(dataset, cfg)
 question_rnn.load('./language_model/pre-trained.pth')
 
 env = gym.make(cfg.env_name)
+env.seed(1)
+np.random.seed(1)
+torch.manual_seed(1)
+random.seed(1)
+
 env = OracleWrapper(env, syntax_error_reward=-0.001, undefined_error_reward=-0.001, ans_random=cfg.ans_random)
-env.seed(0)
 state_dim = env.observation_space['image'].shape
 action_dim = env.action_space.n
 
@@ -66,7 +82,7 @@ model = BrainNet(question_rnn)
 agent = Agent(model, cfg.lr, cfg.gamma, cfg.clip, cfg.value_param, cfg.entropy_param, lmbda=cfg.lmbda)
 
 print(agent.model)
-_, train_reward = train(env, agent, wandb, exploration=True,
+_, train_reward = train(env, agent, logger, exploration=True,
                            n_episodes=cfg.N_eps, log_interval=cfg.train_log_interval,
                            verbose=True)
 

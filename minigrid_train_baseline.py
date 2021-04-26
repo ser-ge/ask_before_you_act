@@ -1,5 +1,8 @@
+import random
+
 import gym
 import gym_minigrid
+import torch
 
 from agents import BaselineAgent
 from utils import GAEtrain
@@ -9,7 +12,11 @@ import numpy as np
 # env = gym.make("MiniGrid-Empty-8x8-v0")
 env = gym.make("MiniGrid-Empty-5x5-v0")
 
-env.seed(0)
+env.seed(1)
+torch.manual_seed(1)
+np.random.seed(1)
+random.seed(1)
+
 state_dim = env.observation_space['image'].shape
 action_dim = env.action_space.n
 

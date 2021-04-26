@@ -22,12 +22,11 @@ class BrainNet(nn.Module):
             nn.Conv2d(32, 64, (2, 2)),
             nn.ReLU())
 
-        self.policy_head = nn.Linear(194, action_dim)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
-        self.value_head = nn.Linear(194, 1)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
+        self.policy_head = nn.Linear(64, action_dim)
+        self.value_head = nn.Linear(64, 1)
 
         # CNN output is 64 dims
         # Assuming qa_history is also 64
-        self.question_rnn = question_rnn
         # self.question_rnn = nn.LSTMCell(self.vocab_size, 128)  # (input_size, hidden_size)
         # self.question_head = nn.Linear(128, vocab_size)
         self.softmax = nn.Softmax(dim=-1)
@@ -37,44 +36,15 @@ class BrainNet(nn.Module):
         word_lstm_hidden : last hidden state
         """
         encoded_obs = self.encode_obs(obs)
-        x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
-        action_policy = self.policy_head(x)
+        # x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
+        action_policy = self.policy_head(encoded_obs)
         return action_policy
 
     def value(self, obs, answer, word_lstm_hidden):
         encoded_obs = self.encode_obs(obs)
-        x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
-        state_value = self.value_head(x)
+        # x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
+        state_value = self.value_head(encoded_obs)
         return state_value
-
-    def gen_question(self, obs, qa_history):
-
-        encoded_obs = self.encode_obs(obs)
-        hx = torch.cat((encoded_obs, qa_history.view(-1, 64)), 1)
-        cx = torch.randn(hx.shape)  # (batch, hidden_size)
-        entropy_qa = 0
-        log_probs_qa = []
-        words = ['<sos>']
-
-        memory = (hx, cx)
-
-        while words[-1] != '<eos>':
-            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0)
-            logits, memory = self.question_rnn.process_single_input(x, memory)
-            dist = self.softmax(logits.squeeze())
-            m = distributions.Categorical(dist)
-            tkn_idx = m.sample()
-            log_probs_qa.append(m.log_prob(tkn_idx))
-            entropy_qa += m.entropy().item()
-            word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
-            words.append(word)
-
-        entropy_qa /= len(words)
-
-        last_hidden_state = memory[0]
-        output = words[1:-1]  # remove sos and eos
-
-        return output, last_hidden_state, log_probs_qa, entropy_qa
 
     def encode_obs(self, obs):
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)

@@ -66,10 +66,10 @@ class PPOAgent():
         observation = torch.FloatTensor(observation).to(device)
 
         logits = self.model(observation, flag="policy")
-        action_prob = F.softmax(logits.squeeze()/self.T, dim=-1)
+        action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
-        probs = action_prob[action]  # Policy log grad
+        probs = action_prob[action]  # Policy log prob
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
