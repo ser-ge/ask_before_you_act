@@ -134,7 +134,9 @@ class OracleWrapper(gym.core.Wrapper):
         try:
 
             if self.ans_random:  # TODO still penalize if syntax is incorrect?
+                ans = self.oracle.answer(question, full_grid)
                 ans = random.choice(list(Answer))
+
             else:
                 ans = self.oracle.answer(question, full_grid)
                 ans = Answer.TRUTH if ans else Answer.FALSE
