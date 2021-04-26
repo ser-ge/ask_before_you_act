@@ -34,8 +34,7 @@ class Agent:
         self.data = []
 
     def ask(self, observation):
-        # Will this be taking the history of questions?
-        # And history of states?
+        # TODO - take Q&A history
         qa_history = torch.rand((1, 64))
         observation = torch.FloatTensor(observation).to(device)
         tokens, hx, log_probs_qa, entropy_qa = self.model.gen_question(observation, qa_history)

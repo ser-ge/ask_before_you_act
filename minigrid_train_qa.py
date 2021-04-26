@@ -19,7 +19,6 @@ import wandb
 
 USE_WANDB = False
 
-
 @dataclass
 class Config:
     epochs: int = 30
@@ -38,10 +37,10 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 2000
-    train_log_interval: float = 25
+    N_eps: float = 50
+    train_log_interval: float = 5
     runs: float = 1
-    env_name: str = "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-Empty-5x5-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -51,8 +50,6 @@ class Config:
 
 
 cfg = Config()
-
-# %%
 
 if USE_WANDB:
     wandb.init(project='ask_before_you_act', config=asdict(cfg))
@@ -85,8 +82,6 @@ action_dim = env.action_space.n
 # Store data for each run
 runs_reward = []
 
-# TODO - incorporate many runs for average results
-
 print(f"========================== TRAINING - RUN {1 + 1:.0f}/{cfg.runs:.0f} ==========================")
 # Agent
 model = BrainNet(question_rnn)
@@ -94,14 +89,10 @@ agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
               cfg.value_param, cfg.entropy_act_param,
               cfg.policy_qa_param, cfg.entropy_qa_param)
 
-# Agent defaults
-# (self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99, clip_param=0.2,
-# value_param=1, entropy_act_param=0.01, policy_qa_param=1, entropy_qa_param=0.05):
-
-print(agent.model)
-
 _, train_reward = train(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
                         log_interval=cfg.train_log_interval, verbose=True)
 
 # Store result for every run
 runs_reward.append(train_reward)
+
+
