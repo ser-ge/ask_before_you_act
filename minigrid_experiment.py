@@ -11,9 +11,14 @@ import seaborn as sns
 import pandas as pd
 
 from agents.Agent import Agent
+from agents.AgentMem import AgentMem
 from models.brain_net import BrainNet
+from models.brain_net_mem import BrainNetMem
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
+from utils.TrainerMem import train as train_mem
+
+
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
 from typing import Callable
@@ -39,7 +44,7 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 50
+    N_eps: float = 250
     train_log_interval: float = 5
     env_name: str = "MiniGrid-Empty-5x5-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
@@ -48,6 +53,7 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
+    use_mem: bool = True
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -81,13 +87,23 @@ def run_experiment(USE_WANDB, **kwargs):
                         ans_random=cfg.ans_random)
 
     # Agent
-    model = BrainNet(question_rnn)
-    agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                  cfg.value_param, cfg.entropy_act_param,
-                  cfg.policy_qa_param, cfg.entropy_qa_param)
+    if cfg.use_mem:
+        model = BrainNetMem(question_rnn)
+        agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                      cfg.value_param, cfg.entropy_act_param,
+                      cfg.policy_qa_param, cfg.entropy_qa_param)
 
-    _, train_reward = train(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
-                            log_interval=cfg.train_log_interval, verbose=True)
+        _, train_reward = train_mem(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
+
+    else:
+        model = BrainNet(question_rnn)
+        agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                      cfg.value_param, cfg.entropy_act_param,
+                      cfg.policy_qa_param, cfg.entropy_qa_param)
+
+        _, train_reward = train(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
 
     return train_reward
 
@@ -116,7 +132,7 @@ if __name__ == "__main__":
     total_runs = 3
     for runs in range(total_runs):
         print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
-        train_reward = run_experiment(False, env_name="jsfhsd")
+        train_reward = run_experiment(True)
 
         # Store result for every run
         runs_reward.append(train_reward)
