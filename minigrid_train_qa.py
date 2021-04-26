@@ -47,7 +47,7 @@ class Config:
     syntax_error_reward: float = -0.2
     pre_trained_lstm: bool = True
     use_seed: bool = False
-    seed : int = 1
+    seed: int = 1
 
 
 cfg = Config()
