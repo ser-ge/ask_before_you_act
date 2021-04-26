@@ -4,10 +4,6 @@ import torch.nn as nn
 import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
-QUESTION_SAMPLING_TEMP = 0.9
-
-device = "cpu" #TODO FIX!!!
-
 class BrainNetMem(nn.Module):
     def __init__(self, question_rnn, action_dim=7, vocab_size=10):
         super().__init__()
@@ -31,10 +27,7 @@ class BrainNetMem(nn.Module):
         # CNN output is 64 dims
         # Assuming qa_history is also 64
         self.question_rnn = question_rnn
-        # self.question_rnn = nn.LSTMCell(self.vocab_size, 128)  # (input_size, hidden_size)
-        # self.question_head = nn.Linear(128, vocab_size)
         self.softmax = nn.Softmax(dim=-1)
-
 
     def policy(self, obs, answer, word_lstm_hidden):
         """
@@ -52,21 +45,17 @@ class BrainNetMem(nn.Module):
         state_value = self.value_head(x)
         return state_value
 
-    def remmeber(self, obs, answer, word_lstm_hidden, memory):
+    def remember(self, obs, answer, word_lstm_hidden, memory):
         """
         word_lstm_hidden : last hidden state
         """
-        obs = torch.FloatTensor(obs).to(device)
-        answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         encoded_obs = self.encode_obs(obs)
         x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
         memory = self.memory_rnn(x, memory)
-        return  memory
+        return memory
 
     def gen_question(self, obs, hidden_hist_mem):
-
         encoded_obs = self.encode_obs(obs)
-
         hx = torch.cat((encoded_obs, hidden_hist_mem.view(-1, 64)), 1)
         cx = torch.randn(hx.shape)  # (batch, hidden_size)
         entropy_qa = 0
@@ -94,10 +83,7 @@ class BrainNetMem(nn.Module):
         return output, last_hidden_state, log_probs_qa, entropy_qa
 
     def encode_obs(self, obs):
-        # breakpoint()
-        # print(type(obs))
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
-        # batch = x.shape[0]
         obs_encoding = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
         return obs_encoding
 

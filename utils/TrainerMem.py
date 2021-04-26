@@ -52,8 +52,7 @@ def train(
     qa_pairs = []
 
     while episode < n_episodes:
-        # Ask - TODO pass qa_history
-        hist_mem = agent.init_memory()  # TODO implement
+        hist_mem = agent.init_memory()
 
         question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
 
@@ -63,13 +62,13 @@ def train(
 
         answer = answer.decode()
 
-        # TODO double check if this is correct
         avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q)
 
-        next_hist_mem = agent.model.remmeber(state, answer, hidden_q, hist_mem)
+        # Remember
+        next_hist_mem = agent.remember(state, answer, hidden_q, hist_mem)
 
         # Step
         next_state, reward, done, _ = env.step(action)

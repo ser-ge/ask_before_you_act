@@ -54,19 +54,25 @@ class AgentMem:
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
-    def update(self):
-        # torch.autograd.set_detect_anomaly(True)
-        state, answer, word_lstm_hidden, action, reward, reward_qa, next_state, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
+    def remember(self, state, answer, hidden_q, hist_mem):
+        obs = torch.FloatTensor(state).to(device)
+        answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
+        memory = self.model.remember(obs, answer, hidden_q, hist_mem)
+        return memory
 
+    def update(self):
+        state, answer, word_lstm_hidden, action, reward, reward_qa, next_state, \
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
+        cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
 
         # Get current V
         V_pred = self.model.value(state, answer, word_lstm_hidden).squeeze()
+
         # Get next V
         next_V_pred = self.model.value(next_state, answer, word_lstm_hidden).squeeze()
 
-        # Moved this to buffer --> mask = ~done # 1 if not done, 0 of done
         # Compute TD error
+        # Moved this to buffer --> mask = ~done # 1 if not done, 0 of done
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
         td_error = (target - V_pred).detach()
 
@@ -134,7 +140,7 @@ class AgentMem:
         log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(device), trans.log_prob_qa)))
         entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1, 1)
         entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
-        done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1) #You need the tilde!
+        done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
         next_hidden_hist_mem = torch.cat(trans.next_hidden_hist_mem)
@@ -147,7 +153,6 @@ class AgentMem:
                 next_state,  log_prob_act, log_prob_qa, entropy_act, entropy_qa,
                 done,  hidden_hist_mem, cell_hist_mem, next_hidden_hist_mem,
                 next_cell_hist_mem)
-
 
     def init_memory(self):
         return (torch.rand(1, self.model.mem_hidden_dim),

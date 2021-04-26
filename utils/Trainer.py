@@ -27,29 +27,21 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
     qa_pairs = []
 
     while episode < n_episodes:
-        # Ask - TODO pass qa_history
         question, word_lstm_hidden, log_prob_qa, entropy_qa = agent.ask(state)
 
         # Answer
         answer, reward_qa = env.answer(question)
-        qa_pairs.append([question, str(answer), reward_qa])
-
-        answer = answer.decode()
-
-        avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)  # TODO double check if this is correct
-        # answer = [0, 0]
-        # word_lstm_hidden = torch.zeros_like(word_lstm_hidden).detach()
+        qa_pairs.append([question, str(answer), reward_qa])  # Storing
+        answer = answer.decode()  # For passing vector to agent
+        avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
         # Act
         action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
 
         # Step
         next_state, reward, done, _ = env.step(action)
-
-        # if reward > 0:
-        #     print("Goal reached")
-
         next_state = next_state['image']  # Discard other info
+
         # Store
         if exploration:
             t = Transition(state, answer, word_lstm_hidden, action, reward,

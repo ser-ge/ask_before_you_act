@@ -44,8 +44,8 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 50
-    train_log_interval: float = 5
+    N_eps: float = 500
+    train_log_interval: float = 25
     env_name: str = "MiniGrid-Empty-5x5-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
@@ -58,7 +58,6 @@ class Config:
 
 def run_experiment(USE_WANDB, **kwargs):
     cfg = Config(**kwargs)
-    print(cfg.ans_random)
 
     if USE_WANDB:
         wandb.init(project='ask_before_you_act', config=asdict(cfg))
@@ -109,7 +108,7 @@ def run_experiment(USE_WANDB, **kwargs):
     return train_reward
 
 
-def plot_experiment(runs_reward, total_runs, window=10):
+def plot_experiment(runs_reward, total_runs, window=25):
     sns.set()
 
     fig = plt.figure(figsize=(9, 7))
@@ -129,12 +128,13 @@ def plot_experiment(runs_reward, total_runs, window=10):
     ax.set_xlabel("Episodes")
     plt.tight_layout()
     plt.show()
+    fig.savefig("./figures/figure_run" + str(total_runs) + ".png")
 
 
 if __name__ == "__main__":
     # Store data for each run
     runs_reward = []
-    total_runs = 3
+    total_runs = 20
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
@@ -144,6 +144,7 @@ if __name__ == "__main__":
             runs_reward.append(train_reward)
 
     plot_experiment(runs_reward, total_runs)
+    np.save("./data/runs_reward" + str(total_runs) + ".npy", runs_reward)
 
 
 

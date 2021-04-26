@@ -1,5 +1,6 @@
 # from gym_minigrid.minigrid import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 import random
+from enum import Enum
 
 import numpy as np
 import gym
@@ -27,7 +28,7 @@ class Oracle:
         try:
             tree = self.parse(question)
         except:
-            raise MySyntaxError("invalid syntax")  # TODO appropriate return value, perhaps exceptions
+            raise MySyntaxError("invalid syntax")  # TODO - appropriate return value, perhaps exceptions
 
         premise = self.to_premise(tree)
 
@@ -91,8 +92,6 @@ class Oracle:
             return matched
 
 
-from enum import Enum
-
 class Answer(Enum):
     TRUTH = 1
     FALSE = 2
@@ -133,8 +132,8 @@ class OracleWrapper(gym.core.Wrapper):
 
         try:
 
-            if self.ans_random:  # TODO still penalize if syntax is incorrect?
-                ans = self.oracle.answer(question, full_grid)
+            if self.ans_random:  # TODO - still penalize if syntax is incorrect?
+                _ = self.oracle.answer(question, full_grid)
                 ans = random.choice(list(Answer))
 
             else:
