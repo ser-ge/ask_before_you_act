@@ -40,10 +40,12 @@ class Config:
     train_log_interval : float = 25
     runs : float = 1
     env_name : str = "MiniGrid-Empty-5x5-v0"
-    ans_random : bool = False
+    ans_random : bool = True
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
     pre_trained_lstm: bool = True
+    use_seed: bool = False
+    seed : int = 1
 
 cfg = Config()
 
@@ -64,10 +66,12 @@ if cfg.pre_trained_lstm:
     question_rnn.load('./language_model/pre-trained.pth')
 
 env = gym.make(cfg.env_name)
-env.seed(1)
-np.random.seed(1)
-torch.manual_seed(1)
-random.seed(1)
+
+if cfg.use_seed:
+    env.seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    torch.manual_seed(cfg.seed)
+    random.seed(cfg.seed)
 
 env = OracleWrapper(env, syntax_error_reward=cfg.syntax_error_reward, undefined_error_reward=cfg.undefined_error_reward, ans_random=cfg.ans_random)
 state_dim = env.observation_space['image'].shape
