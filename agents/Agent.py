@@ -135,7 +135,7 @@ class Agent:
         entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1, 1)
         entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
         # Note: done has been negated to be able to mask the end-of-episode bootstrap step
-        done = torch.BoolTensor(~trans.done).to(device).view(-1, 1)
+        done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)
 
         self.data = []
 

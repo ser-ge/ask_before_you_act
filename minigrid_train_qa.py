@@ -17,7 +17,7 @@ from dataclasses import dataclass, asdict
 
 import wandb
 
-USE_WANDB = True
+USE_WANDB = False
 
 
 @dataclass
