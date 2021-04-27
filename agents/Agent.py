@@ -149,8 +149,6 @@ class Agent:
                 next_cell_hist_mem)
 
 
-    
-    
 class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,

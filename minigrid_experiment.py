@@ -45,10 +45,10 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 500
-    train_log_interval: float = 25
+    N_eps: float = 10
+    train_log_interval: float = 2
     # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
-    env_name: str = "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-Empty-8x8-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -56,7 +56,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = False
-    baseline: bool = True
+    baseline: bool = False
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -117,7 +117,6 @@ def run_experiment(USE_WANDB, **kwargs):
         _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
                                 log_interval=cfg.train_log_interval, verbose=True)
 
-
     if USE_WANDB:
         run.finish()
     return train_reward
@@ -150,7 +149,7 @@ if __name__ == "__main__":
     # Store data for each run
     signature = str(random.randint(10000, 90000))
     runs_reward = []
-    total_runs = 2
+    total_runs = 1
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. ANS - {ans_random} =================")
