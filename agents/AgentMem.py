@@ -65,6 +65,9 @@ class AgentMem:
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
         cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
 
+        if reward.shape[0] <= 1 :  # in case episode length is less than 1
+            return 0
+
         # Get current V
         V_pred = self.model.value(state, answer, word_lstm_hidden).squeeze()
 
