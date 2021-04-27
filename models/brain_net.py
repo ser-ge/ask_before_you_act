@@ -5,7 +5,6 @@ import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
 
-
 class BrainNet(nn.Module):
     def __init__(self, question_rnn, action_dim=7, word_limit=7, device="cpu"):
         super().__init__()

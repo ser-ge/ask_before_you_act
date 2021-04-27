@@ -52,7 +52,7 @@ class Config:
     seed: int = 1
     use_mem: bool = True
 
-USE_WANDB = True
+USE_WANDB = False
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     # Store data for each run
     signature = str(random.randint(10000, 90000))
     runs_reward = []
-    total_runs = 20
+    total_runs = 10
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             # Store result for every run
             runs_reward.append(train_reward)
 
-    plot_experiment(runs_reward, total_runs)
+    plot_experiment(runs_reward, total_runs, window=25)
     np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", runs_reward)
 
 
