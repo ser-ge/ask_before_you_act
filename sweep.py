@@ -45,10 +45,10 @@ class Config:
     entropy_qa_param: float = 0.05
     N_eps: float = 500
     train_log_interval: float = 25
-    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
 
     # "MiniGrid-Empty-5x5-v0"
-    # env_name: str = "MiniGrid-Empty-8x8-v0"
+    env_name: str = "MiniGrid-Empty-8x8-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -65,7 +65,7 @@ USE_WANDB = True
 
 
 sweep_config = {
-    "name" : "test sweeep",
+    "name" : "8 by 8 sweeep",
     "method": "bayes",
     "metric": {"name": "eps_reward", "goal": "maximize"},
 
@@ -95,21 +95,27 @@ sweep_config = {
             "min": 0,
             "max": 1,
         },
-        "undefined_error_reward": {
-            "distribution": "uniform",
-            "min": -1,
-            "max": 0,
-        },
-        "syntax_error_reward": {
-            "distribution": "uniform",
-            "min": -1,
-            "max": 0,
+
+        # "undefined_error_reward": {
+        #     "distribution": "uniform",
+        #     "min": -1,
+        #     "max": 0,
+        # },
+
+
+        "lambda": {
+            "distribution": "log_uniform",
+            "min": math.log(0.9),
+            "max": math.log(0.999),
         },
         "clip": {
             "distribution": "uniform",
             "min": 0,
             "max": 0.5,
         },
+        "ans_random" : {
+            'values' : [True, False]
+            }
     }
 }
 
