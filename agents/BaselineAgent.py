@@ -6,62 +6,29 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-torch.manual_seed(0)
-
-class SharedCNN(nn.Module):
-    def __init__(self, action_dim=7):
-        super(SharedCNN, self).__init__()
-
-        self.image_conv = nn.Sequential(
-            nn.Conv2d(3, 16, (2, 2)),
-            nn.ReLU(),
-            nn.MaxPool2d((2, 2)),
-            nn.Conv2d(16, 32, (2, 2)),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, (2, 2)),
-            nn.ReLU())
-
-        self.policy_head = nn.Linear(64, action_dim)
-        self.value_head = nn.Linear(64, 1)
-        self.activation = nn.ReLU()
-
-    def forward(self, x, flag="policy"):
-        # Shared Body
-        x = x.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
-        x = self.image_conv(x).squeeze()  # x: (batch, hidden)
-        # Split heads
-        if flag == "policy":
-            x_pol = self.policy_head(x)
-            return x_pol
-        elif flag == "value":
-            x_val = self.value_head(x)
-            return x_val
+device = "cpu"
 
 
-class PPOAgent():
-    def __init__(self, state_dim, action_dim, hidden_dim=64, learning_rate=0.001,
-                 gamma=0.99, clip_param=0.2, value_param=1, entropy_param=0.01,
-                 lmbda=0.95, backward_epochs=2):
-        self.hidden_dim = hidden_dim
+class PPOAgent:
+    def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
+                 clip_param=0.2, value_param=1, entropy_act_param=0.01):
+
         self.gamma = gamma
         self.lmbda = lmbda
 
-        self.model = SharedCNN().to(device)
+        self.model = model.to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
         self.clip_param = clip_param
-        self.entropy_param = entropy_param
+        self.entropy_param = entropy_act_param
         self.value_param = value_param
         self.episode = 0
         self.T = 1
 
         self.done = True
         self.data = []
-        self.backward_epochs = backward_epochs
 
-    def act(self, observation, exploration=True):
+    def act(self, observation):
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
 
@@ -76,48 +43,46 @@ class PPOAgent():
     def update(self):
         obs, a, reward, next_obs, done, log_prob, entropy = self.get_batch()
 
-        for i in range(self.backward_epochs):
-            # Get current V
+        # Get current V
+        V_pred = self.model(obs, flag="value").squeeze()
 
-            V_pred = self.model(obs, flag="value").squeeze()
+        # Get next V
+        next_V_pred = self.model(next_obs, flag="value").squeeze()
 
-            # Get next V
-            next_V_pred = self.model(next_obs, flag="value").squeeze()
+        # Compute TD error
+        target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
+        td_error = (target - V_pred).detach()
 
-            # Compute TD error
-            target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
-            td_error = (target - V_pred).detach()
+        # Generalised Advantage Estimation
+        advantage_list = []
+        advantage = 0.0
+        for delta in reversed(td_error):
+            advantage = self.gamma * self.lmbda * advantage + delta
+            advantage_list.append([advantage])
+        advantage_list.reverse()
+        advantage = torch.FloatTensor(advantage_list).to(device)
 
-            # Generalised Advantage Estimation
-            advantage_list = []
-            advantage = 0.0
-            for delta in reversed(td_error):
-                advantage = self.gamma * self.lmbda * advantage + delta
-                advantage_list.append([advantage])
-            advantage_list.reverse()
-            advantage = torch.FloatTensor(advantage_list).to(device)
+        # Clipped PPO Policy Loss
+        logits = self.model(obs, flag="policy")
+        probs = F.softmax(logits, dim=-1)
+        pi_a = probs.squeeze(1).gather(1, torch.LongTensor(a.long()).to(device))
+        ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob))
+        surrogate1 = ratio * advantage
+        surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
+        L_clip = torch.min(surrogate1, surrogate2).mean()
 
-            # Clipped PPO Policy Loss
-            logits = self.model(obs, flag="policy")
-            probs = F.softmax(logits, dim=-1)
-            pi_a = probs.squeeze(1).gather(1, torch.LongTensor(a.long()).to(device))
-            ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob))
-            surrogate1 = ratio * advantage
-            surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
-            L_clip = torch.min(surrogate1, surrogate2).mean()
+        # Entropy regularizer
+        L_entropy = self.entropy_param * entropy.detach().mean()
 
-            # Entropy regularizer
-            L_entropy = self.entropy_param * entropy.detach().mean()
+        # Value function loss
+        L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
-            # Value function loss
-            L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
+        total_loss = -(L_clip - L_value + L_entropy).to(device)
 
-            total_loss = -(L_clip - L_value + L_entropy).to(device)
-
-            # Update params
-            self.optimizer.zero_grad()
-            total_loss.backward()
-            self.optimizer.step()
+        # Update params
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
         return total_loss.item()
 
     def store(self, transition):

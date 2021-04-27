@@ -10,10 +10,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
+from agents.BaselineAgent import PPOAgent
 from agents.Agent import Agent, AgentMem
+
+from models.BaselineModel import BaselineCNN
 from models.brain_net import BrainNet, BrainNetMem
+
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
+from utils.BaselineTrain import GAEtrain
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -42,7 +47,7 @@ class Config:
     entropy_qa_param: float = 0.05
     N_eps: float = 500
     train_log_interval: float = 25
-    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
+    # env_name: str = "MiniGrid-Empty-8x8-v0"
     env_name: str = "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
@@ -51,6 +56,12 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = False
+    baseline: bool = False
+
+
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+device = "cpu"
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -84,12 +95,23 @@ def run_experiment(USE_WANDB, **kwargs):
                         ans_random=cfg.ans_random)
 
     # Agent
-    if cfg.use_mem:
-        print('Remembering things')
+    if cfg.baseline:
+        model = BaselineCNN()
+        agent = PPOAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                         cfg.value_param, cfg.entropy_act_param)
+
+        _, train_reward = GAEtrain(env, agent, logger, n_episodes=cfg.N_eps,
+                                   log_interval=cfg.train_log_interval, verbose=True)
+
+    elif cfg.use_mem:
         model = BrainNetMem(question_rnn)
         agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
+
+        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
+
 
     else:
         model = BrainNet(question_rnn)
@@ -97,9 +119,8 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
-
-    _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
-                            log_interval=cfg.train_log_interval, verbose=True)
+        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
 
     if USE_WANDB:
         run.finish()
@@ -139,6 +160,7 @@ if __name__ == "__main__":
     averaged_data = pd.DataFrame(columns=['Random Noise','Actual Information'])
 
     column_number = 0
+
 
     for ans_random in (True, False):
         for runs in range(total_runs):

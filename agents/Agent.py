@@ -8,7 +8,7 @@ import torch.distributions as distributions
 from utils.Trainer import Transition
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 
 class Agent:
@@ -80,7 +80,7 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = self.policy_qa_param * (reward_qa + advantage.squeeze()) * log_prob_qa
+        L_policy_qa = (self.policy_qa_param * reward_qa + advantage.squeeze()) * log_prob_qa
         L_entropy_qa = self.entropy_qa_param * entropy_qa
         L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
 
@@ -149,8 +149,6 @@ class Agent:
                 next_cell_hist_mem)
 
 
-    
-    
 class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,

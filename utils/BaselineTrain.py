@@ -4,10 +4,9 @@ from time import sleep
 import numpy as np
 
 
-def GAEtrain(env, agent, exploration=True, n_episodes=1000,
-             log_interval=50, verbose=False, ID=False):
+def GAEtrain(env, agent, logger, n_episodes=1000,
+             log_interval=50, verbose=False):
     episode = 0
-    episode_loss = 0
 
     episode_reward = []
     loss_history = []
@@ -18,11 +17,7 @@ def GAEtrain(env, agent, exploration=True, n_episodes=1000,
 
     while episode < n_episodes:
         # Act
-        a, log_prob, entropy = agent.act(state, exploration)
-
-        # if episode % (log_interval * 2) == 0:
-        #     env.render()
-        #     # sleep(0.001)
+        a, log_prob, entropy = agent.act(state)
 
         # Step
         next_state, r, done, _ = env.step(a)
@@ -30,9 +25,8 @@ def GAEtrain(env, agent, exploration=True, n_episodes=1000,
         # env.render()
 
         # Store
-        if exploration:
-            agent.store((state, a, r, next_state,
-                         log_prob.item(), entropy.item(), done))
+        agent.store((state, a, r, next_state,
+                     log_prob.item(), entropy.item(), done))
 
         # Advance
         state = next_state
@@ -43,19 +37,25 @@ def GAEtrain(env, agent, exploration=True, n_episodes=1000,
 
         if done:
             # Update
-            if exploration:
-                episode_loss = agent.update()
+            episode_loss = agent.update()
 
             state = env.reset()['image']  # Discard other info
             step = 0
 
             loss_history.append(episode_loss)
             reward_history.append(sum(episode_reward))
-            episode_reward = []
 
+            logger.log(
+                {
+                    "eps_reward": sum(episode_reward),
+                    "loss": episode_loss
+                }
+            )
+
+            episode_reward = []
             episode += 1
 
-            if (episode) % log_interval == 0:
+            if episode % log_interval == 0:
                 if verbose:
                     avg_R = np.sum(reward_history[-log_interval:])/log_interval
                     print(f"Episode: {episode}, Reward: {avg_R:.1f}")
