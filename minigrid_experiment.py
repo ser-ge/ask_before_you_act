@@ -50,7 +50,7 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = True
+    use_mem: bool = False
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -92,7 +92,6 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
     else:
-        print('Not remembering things')
         model = BrainNet(question_rnn)
         agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
@@ -137,7 +136,7 @@ if __name__ == "__main__":
     total_runs = 2
     for ans_random in (True, False):
         for runs in range(total_runs):
-            print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
+            print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. ANS - {ans_random} =================")
             train_reward = run_experiment(False, ans_random=ans_random)
 
             # Store result for every run
