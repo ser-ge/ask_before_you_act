@@ -8,7 +8,7 @@ import torch.distributions as distributions
 from utils.Trainer import Transition
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 
 class Agent:
@@ -165,8 +165,8 @@ class AgentMem(Agent):
         answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         memory = self.model.remember(obs, answer, hidden_q, hist_mem)
         return memory
-    
-    
+
+
 class AgentMemAction(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
