@@ -81,8 +81,8 @@ class BrainNet(nn.Module):
 class BrainNetMem(BrainNet):
     def __init__(self, question_rnn):
         super().__init__(question_rnn, action_dim=7)
-        # here 195 because we do include action
-        self.memory_rnn = nn.LSTMCell(195, self.mem_hidden_dim)
+        # 201 is 128 of hx + 7 action_one_hot + 2 of answer + 64 obs CNN
+        self.memory_rnn = nn.LSTMCell(201, self.mem_hidden_dim)
 
     def remember(self, obs, action, answer, hidden_q, memory):
         encoded_obs = self.encode_obs(obs)

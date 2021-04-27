@@ -164,10 +164,12 @@ class AgentMem(Agent):
 
 
     def remember(self, state, action, answer, hidden_q, hist_mem):
-        action = torch.FloatTensor([action]).unsqueeze(0)
+        # action = torch.FloatTensor([action]).unsqueeze(0).to(device)
+        action_one_hot = torch.zeros((1, 7)).to(device)
+        action_one_hot[0, action] = 1
         obs = torch.FloatTensor(state).to(device)
         answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
-        memory = self.model.remember(obs, action, answer, hidden_q, hist_mem)
+        memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
 
 
