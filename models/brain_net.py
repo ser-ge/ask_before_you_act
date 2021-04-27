@@ -5,7 +5,7 @@ import torch.distributions as distributions
 
 from language_model.model import Model as QuestionRNN
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = "cpu"
 
 class BrainNet(nn.Module):
     def __init__(self, question_rnn, action_dim=7, hidden_q_dim=128, mem_hidden_dim=64):
@@ -67,6 +67,7 @@ class BrainNet(nn.Module):
             entropy_qa += m.entropy().item()
             word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
             words.append(word)
+            if len(words) > 10: break
 
         entropy_qa /= len(words)
 

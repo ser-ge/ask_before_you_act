@@ -45,10 +45,10 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 10
-    train_log_interval: float = 2
-    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
-    env_name: str = "MiniGrid-Empty-8x8-v0"
+    N_eps: float = 500
+    train_log_interval: float = 25
+    # env_name: str = "MiniGrid-Empty-8x8-v0"
+    env_name: str = "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -57,6 +57,11 @@ class Config:
     seed: int = 1
     use_mem: bool = False
     baseline: bool = False
+
+
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+device = "cpu"
 
 
 def run_experiment(USE_WANDB, **kwargs):
