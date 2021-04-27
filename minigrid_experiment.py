@@ -43,7 +43,7 @@ class Config:
     N_eps: float = 500
     train_log_interval: float = 25
     # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
-    env_name: str = "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-Empty-8x8-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -52,7 +52,11 @@ class Config:
     seed: int = 1
     use_mem: bool = True
 
+USE_WANDB = True
 
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+device = "cpu"
 def run_experiment(USE_WANDB, **kwargs):
     cfg = Config(**kwargs)
 
@@ -85,15 +89,15 @@ def run_experiment(USE_WANDB, **kwargs):
 
     # Agent
     if cfg.use_mem:
-        model = BrainNetMem(question_rnn)
+        model = BrainNetMem(question_rnn, device=device)
         agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
-                      cfg.policy_qa_param, cfg.entropy_qa_param)
+                      cfg.policy_qa_param, cfg.entropy_qa_param, device=device)
     else:
-        model = BrainNet(question_rnn)
+        model = BrainNet(question_rnn, device=device)
         agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
-                      cfg.policy_qa_param, cfg.entropy_qa_param)
+                      cfg.policy_qa_param, cfg.entropy_qa_param, device=device)
 
 
     _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
@@ -135,7 +139,7 @@ if __name__ == "__main__":
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
-            train_reward = run_experiment(False, ans_random=ans_random)
+            train_reward = run_experiment(USE_WANDB, ans_random=ans_random)
 
             # Store result for every run
             runs_reward.append(train_reward)

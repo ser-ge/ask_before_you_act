@@ -4,11 +4,10 @@ import torch.nn as nn
 import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class BrainNet(nn.Module):
-    def __init__(self, question_rnn, action_dim=7):
+    def __init__(self, question_rnn, action_dim=7, word_limit=7, device="cpu"):
         super().__init__()
 
         self.image_conv = nn.Sequential(
@@ -21,6 +20,7 @@ class BrainNet(nn.Module):
             nn.ReLU())
 
         self.mem_hidden_dim = 64
+        self.device = device
 
         self.policy_head = nn.Linear(194, action_dim)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
         self.value_head = nn.Linear(194, 1)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
@@ -29,6 +29,8 @@ class BrainNet(nn.Module):
         # Assuming qa_history is also 64
         self.question_rnn = question_rnn
         self.softmax = nn.Softmax(dim=-1)
+
+        self.word_limit = word_limit
 
     def policy(self, obs, answer, hidden_q):
         """
@@ -48,7 +50,7 @@ class BrainNet(nn.Module):
     def gen_question(self, obs, hidden_hist_mem):
         encoded_obs = self.encode_obs(obs)
         hx = torch.cat((encoded_obs, hidden_hist_mem.view(-1, 64)), 1)
-        cx = torch.randn(hx.shape).to(device)  # (batch, hidden_size)
+        cx = torch.randn(hx.shape).to(self.device)  # (batch, hidden_size)
         entropy_qa = 0
         log_probs_qa = []
         words = ['<sos>']
@@ -56,7 +58,7 @@ class BrainNet(nn.Module):
         memory = (hx, cx)
 
         while words[-1] != '<eos>':
-            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0).to(device)
+            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0).to(self.device)
             logits, memory = self.question_rnn.process_single_input(x, memory)
             dist = self.softmax(logits.squeeze())
             m = distributions.Categorical(dist)
@@ -65,6 +67,7 @@ class BrainNet(nn.Module):
             entropy_qa += m.entropy().item()
             word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
             words.append(word)
+            if len(words) > self.word_limit: break
 
         entropy_qa /= len(words)
 
@@ -80,8 +83,8 @@ class BrainNet(nn.Module):
 
 
 class BrainNetMem(BrainNet):
-    def __init__(self, question_rnn):
-        super().__init__(question_rnn, action_dim=7)
+    def __init__(self, question_rnn, device):
+        super().__init__(question_rnn, action_dim=7, device=device)
         self.memory_rnn = nn.LSTMCell(194, self.mem_hidden_dim)
 
     def remember(self, obs, answer, hidden_q, memory):
