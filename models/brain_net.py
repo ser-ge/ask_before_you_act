@@ -6,7 +6,6 @@ from language_model.model import Model as QuestionRNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 class BrainNet(nn.Module):
     def __init__(self, question_rnn, action_dim=7):
         super().__init__()
