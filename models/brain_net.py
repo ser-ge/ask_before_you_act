@@ -4,14 +4,10 @@ import torch.nn as nn
 import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
-QUESTION_SAMPLING_TEMP = 0.9
-
 
 class BrainNet(nn.Module):
-    def __init__(self, question_rnn, action_dim=7, vocab_size=10):
+    def __init__(self, question_rnn, action_dim=7):
         super().__init__()
-
-        self.vocab_size = vocab_size
 
         self.image_conv = nn.Sequential(
             nn.Conv2d(3, 16, (2, 2)),
@@ -28,8 +24,6 @@ class BrainNet(nn.Module):
         # CNN output is 64 dims
         # Assuming qa_history is also 64
         self.question_rnn = question_rnn
-        # self.question_rnn = nn.LSTMCell(self.vocab_size, 128)  # (input_size, hidden_size)
-        # self.question_head = nn.Linear(128, vocab_size)
         self.softmax = nn.Softmax(dim=-1)
 
     def policy(self, obs, answer, word_lstm_hidden):
@@ -47,10 +41,9 @@ class BrainNet(nn.Module):
         state_value = self.value_head(x)
         return state_value
 
-    def gen_question(self, obs, qa_history):
-
+    def gen_question(self, obs, hidden_hist_mem):
         encoded_obs = self.encode_obs(obs)
-        hx = torch.cat((encoded_obs, qa_history.view(-1, 64)), 1)
+        hx = torch.cat((encoded_obs, hidden_hist_mem.view(-1, 64)), 1)
         cx = torch.randn(hx.shape)  # (batch, hidden_size)
         entropy_qa = 0
         log_probs_qa = []
@@ -70,7 +63,6 @@ class BrainNet(nn.Module):
             words.append(word)
 
         entropy_qa /= len(words)
-
         last_hidden_state = memory[0]
         output = words[1:-1]  # remove sos and eos
 
@@ -78,7 +70,18 @@ class BrainNet(nn.Module):
 
     def encode_obs(self, obs):
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
-        # batch = x.shape[0]
         obs_encoding = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
         return obs_encoding
 
+
+class BrainNetMem(BrainNet):
+    def __init__(self, question_rnn, action_dim=7):
+        super().__init__(question_rnn, action_dim=7)
+        self.mem_hidden_dim = 64
+        self.memory_rnn = nn.LSTMCell(194, self.mem_hidden_dim)
+
+    def remember(self, obs, answer, word_lstm_hidden, memory):
+        encoded_obs = self.encode_obs(obs)
+        x = torch.cat((encoded_obs, answer, word_lstm_hidden), 1)
+        memory = self.memory_rnn(x, memory)
+        return memory

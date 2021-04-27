@@ -145,7 +145,7 @@ if __name__ == "__main__":
             runs_reward.append(train_reward)
 
     plot_experiment(runs_reward, total_runs)
-    np.save("./data/runs_reward" + str(total_runs) + signature +".npy", runs_reward)
+    np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", runs_reward)
 
 
 

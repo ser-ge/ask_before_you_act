@@ -4,11 +4,10 @@ import torch.nn as nn
 import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
 
-class BrainNetMem(nn.Module):
-    def __init__(self, question_rnn, action_dim=7, vocab_size=10):
-        super().__init__()
 
-        self.vocab_size = vocab_size
+class BrainNetMem(nn.Module):
+    def __init__(self, question_rnn, action_dim=7):
+        super().__init__()
 
         self.image_conv = nn.Sequential(
             nn.Conv2d(3, 16, (2, 2)),

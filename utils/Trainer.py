@@ -8,6 +8,28 @@ Transition = namedtuple('Transition', ['state', 'answer', 'word_lstm_hidden',
                                        'action', 'reward', 'reward_qa', 'next_state', 'log_prob_act',
                                        'log_prob_qa', 'entropy_act', 'entropy_qa', 'done'])
 
+Transition_mem = namedtuple(
+    "Transition",
+    [
+        "state",
+        "answer",
+        "word_lstm_hidden",
+        "action",
+        "reward",
+        "reward_qa",
+        "next_state",
+        "log_prob_act",
+        "log_prob_qa",
+        "entropy_act",
+        "entropy_qa",
+        "done",
+        "hidden_hist_mem",
+        "cell_hist_mem",
+        "next_hidden_hist_mem",
+        "next_cell_hist_mem",
+    ],
+)
+
 
 def train(env, agent, logger, exploration=True, n_episodes=1000,
           log_interval=50, verbose=False):

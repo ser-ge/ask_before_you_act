@@ -54,6 +54,7 @@ def train(
     while episode < n_episodes:
         hist_mem = agent.init_memory()
 
+        # Ask before you act
         question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
 
         # Answer
