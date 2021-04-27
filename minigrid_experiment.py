@@ -7,11 +7,11 @@ import torch
 import numpy as np
 
 import matplotlib.pyplot as plt
-import seaborn as sns
+import seaborn as snsa
 import pandas as pd
 
-from agents.Agent import Agent, AgentMem
-from models.brain_net import BrainNet, BrainNetMem
+from agents.Agent import Agent, AgentMem, AgentMemAction
+from models.brain_net import BrainNet, BrainNetMem, BrainNetMemAction
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
 
@@ -51,6 +51,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
+    use_action: bool = False
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -85,11 +86,21 @@ def run_experiment(USE_WANDB, **kwargs):
 
     # Agent
     if cfg.use_mem:
-        model = BrainNetMem(question_rnn)
-        agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                      cfg.value_param, cfg.entropy_act_param,
-                      cfg.policy_qa_param, cfg.entropy_qa_param)
+        if cfg.use_action:
+            print('Remembering things, including actions')
+            model = BrainNetMemAction(question_rnn)
+            agent = AgentMemAction(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                          cfg.value_param, cfg.entropy_act_param,
+                          cfg.policy_qa_param, cfg.entropy_qa_param)
+        else:
+            print('Remembering things, but not actions')
+            model = BrainNetMem(question_rnn)
+            agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                          cfg.value_param, cfg.entropy_act_param,
+                          cfg.policy_qa_param, cfg.entropy_qa_param)
+
     else:
+        print('Not remembering things')
         model = BrainNet(question_rnn)
         agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
