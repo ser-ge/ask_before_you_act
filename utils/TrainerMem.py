@@ -9,7 +9,7 @@ Transition = namedtuple(
     [
         "state",
         "answer",
-        "word_lstm_hidden",
+        "hidden_q",
         "action",
         "reward",
         "reward_qa",
@@ -27,17 +27,9 @@ Transition = namedtuple(
 )
 
 
-def train(
-    env,
-    agent,
-    logger,
-    exploration=True,
-    n_episodes=1000,
-    log_interval=50,
-    verbose=False,
-):
+def train(env, agent, logger, Memory=False, n_episodes=1000,
+          log_interval=50, verbose=False):
     episode = 0
-    episode_loss = 0
 
     episode_reward = []
     episode_qa_reward = []
@@ -51,18 +43,17 @@ def train(
 
     qa_pairs = []
 
-    while episode < n_episodes:
-        hist_mem = agent.init_memory()
+    # Initialize random memory
+    hist_mem = agent.init_memory()
 
+    while episode < n_episodes:
         # Ask before you act
         question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
 
         # Answer
         answer, reward_qa = env.answer(question)
         qa_pairs.append([question, str(answer), reward_qa])
-
         answer = answer.decode()
-
         avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
         # Act
@@ -73,32 +64,28 @@ def train(
 
         # Step
         next_state, reward, done, _ = env.step(action)
-
-        # if reward > 0:
-        #     print("Goal reached")
-
         next_state = next_state["image"]  # Discard other info
+
         # Store
-        if exploration:
-            t = Transition(
-                state,
-                answer,
-                hidden_q,
-                action,
-                reward,
-                reward_qa,
-                next_state,
-                log_prob_act.item(),
-                log_prob_qa,
-                entropy_act.item(),
-                entropy_qa,
-                done,
-                hist_mem[0],
-                hist_mem[1],
-                next_hist_mem[0],
-                next_hist_mem[1],
-            )
-            agent.store(t)
+        t = Transition(
+            state,
+            answer,
+            hidden_q,
+            action,
+            reward,
+            reward_qa,
+            next_state,
+            log_prob_act.item(),
+            log_prob_qa,
+            entropy_act.item(),
+            entropy_qa,
+            done,
+            hist_mem[0],
+            hist_mem[1],
+            next_hist_mem[0],
+            next_hist_mem[1],
+        )
+        agent.store(t)
 
         # Advance
         state = next_state
@@ -110,8 +97,7 @@ def train(
 
         if done:
             # Update
-            if exploration:
-                episode_loss = agent.update()
+            episode_loss = agent.update()
 
             state = env.reset()["image"]  # Discard other info
             step = 0

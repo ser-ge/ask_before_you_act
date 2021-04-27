@@ -10,14 +10,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from agents.Agent import Agent
-from agents.AgentMem import AgentMem
-from models.brain_net import BrainNet
-from models.brain_net_mem import BrainNetMem
+from agents.Agent import Agent, AgentMem
+from models.brain_net import BrainNet, BrainNetMem
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
-from utils.TrainerMem import train as train_mem
-
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -47,7 +43,7 @@ class Config:
     N_eps: float = 500
     train_log_interval: float = 25
     # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
-    env_name: str =  "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -93,18 +89,15 @@ def run_experiment(USE_WANDB, **kwargs):
         agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
-
-        _, train_reward = train_mem(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
-                                log_interval=cfg.train_log_interval, verbose=True)
-
     else:
         model = BrainNet(question_rnn)
         agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
-        _, train_reward = train(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
-                                log_interval=cfg.train_log_interval, verbose=True)
+
+    _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                            log_interval=cfg.train_log_interval, verbose=True)
 
     if USE_WANDB:
         run.finish()
@@ -142,7 +135,7 @@ if __name__ == "__main__":
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
-            train_reward = run_experiment(True, ans_random=ans_random)
+            train_reward = run_experiment(False, ans_random=ans_random)
 
             # Store result for every run
             runs_reward.append(train_reward)

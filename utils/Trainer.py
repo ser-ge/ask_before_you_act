@@ -4,16 +4,12 @@ from collections import namedtuple
 import torch
 import wandb
 
-Transition = namedtuple('Transition', ['state', 'answer', 'word_lstm_hidden',
-                                       'action', 'reward', 'reward_qa', 'next_state', 'log_prob_act',
-                                       'log_prob_qa', 'entropy_act', 'entropy_qa', 'done'])
-
-Transition_mem = namedtuple(
+Transition = namedtuple(
     "Transition",
     [
         "state",
         "answer",
-        "word_lstm_hidden",
+        "hidden_q",
         "action",
         "reward",
         "reward_qa",
@@ -31,10 +27,9 @@ Transition_mem = namedtuple(
 )
 
 
-def train(env, agent, logger, exploration=True, n_episodes=1000,
-          log_interval=50, verbose=False):
+def train(env, agent, logger, n_episodes=1000,
+          log_interval=50, memory=False, verbose=False):
     episode = 0
-    episode_loss = 0
 
     episode_reward = []
     episode_qa_reward = []
@@ -48,8 +43,12 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
 
     qa_pairs = []
 
+    # Initialize random memory
+    hist_mem = agent.init_memory()
+
     while episode < n_episodes:
-        question, word_lstm_hidden, log_prob_qa, entropy_qa = agent.ask(state)
+        # Ask before you act
+        question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
 
         # Answer
         answer, reward_qa = env.answer(question)
@@ -58,21 +57,27 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
         avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
         # Act
-        action, log_prob_act, entropy_act = agent.act(state, answer, word_lstm_hidden)
+        action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q)
+
+        # Remember
+        if memory:
+            next_hist_mem = agent.remember(state, answer, hidden_q, hist_mem)
+        else:
+            next_hist_mem = agent.init_memory()
 
         # Step
         next_state, reward, done, _ = env.step(action)
         next_state = next_state['image']  # Discard other info
 
         # Store
-        if exploration:
-            t = Transition(state, answer, word_lstm_hidden, action, reward,
-                           reward_qa, next_state, log_prob_act.item(), log_prob_qa,
-                           entropy_act.item(), entropy_qa, done)
-            agent.store(t)
+        t = Transition(state, answer, hidden_q, action, reward, reward_qa, next_state,
+                       log_prob_act.item(),log_prob_qa, entropy_act.item(), entropy_qa, done,
+                       hist_mem[0], hist_mem[1], next_hist_mem[0], next_hist_mem[1])
+        agent.store(t)
 
         # Advance
         state = next_state
+        hist_mem = next_hist_mem  # Random hist_mem if nto using memory
         step += 1
 
         # Logging
@@ -81,10 +86,11 @@ def train(env, agent, logger, exploration=True, n_episodes=1000,
 
         if done:
             # Update
-            if exploration:
-                episode_loss = agent.update()
+            episode_loss = agent.update()
 
+            # Reset episode
             state = env.reset()['image']  # Discard other info
+            hist_mem = agent.init_memory()  # Initialize memory
             step = 0
 
             loss_history.append(episode_loss)
