@@ -60,10 +60,11 @@ def train(env, agent, logger, n_episodes=1000,
         action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q)
 
         # Remember
-        if memory:
-            next_hist_mem = agent.remember(state, answer, hidden_q, hist_mem)
+        if agent.action_memory:
+            next_hist_mem = agent.remember(state, action, answer, hidden_q, hist_mem)
         else:
-            next_hist_mem = agent.init_memory()
+            next_hist_mem = agent.remember(state, answer, hidden_q, hist_mem)
+
 
         # Step
         next_state, reward, done, _ = env.step(action)

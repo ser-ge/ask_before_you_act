@@ -8,16 +8,16 @@ import torch.distributions as distributions
 from utils.Trainer import Transition
 
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Agent:
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
-                 policy_qa_param=1, entropy_qa_param=0.05, device='cpu'):
+                 policy_qa_param=1, entropy_qa_param=0.05):
 
         self.gamma = gamma
         self.lmbda = lmbda
-        self.device = device
 
         self.clip_param = clip_param
         self.entropy_act_param = entropy_act_param
@@ -27,7 +27,7 @@ class Agent:
 
         self.T = 1
 
-        self.model = model.to(self.device)
+        self.model = model.to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         self.optimizer_qa = optim.Adam(self.model.parameters(), lr=learning_rate)
 
@@ -35,15 +35,15 @@ class Agent:
         self.data = []
 
     def ask(self, observation, hidden_hist_mem):
-        observation = torch.FloatTensor(observation).to(self.device)
+        observation = torch.FloatTensor(observation).to(device)
         tokens, hidden_q, log_probs_qa, entropy_qa = self.model.gen_question(observation, hidden_hist_mem)
         output = ' '.join(tokens)
         return output, hidden_q, log_probs_qa, entropy_qa
 
     def act(self, observation, ans, hidden_q):
         # Calculate policy
-        observation = torch.FloatTensor(observation).to(self.device)
-        ans = torch.FloatTensor(ans).view((-1, 2)).to(self.device)
+        observation = torch.FloatTensor(observation).to(device)
+        ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
         logits = self.model.policy(observation, ans, hidden_q)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
@@ -64,7 +64,7 @@ class Agent:
         next_V_pred = self.model.value(next_state, answer, hidden_q).squeeze()
 
         # Compute TD error
-        target = reward.squeeze().to(self.device) + self.gamma * next_V_pred * done.squeeze().to(self.device)
+        target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
         td_error = (target - V_pred).detach()
 
         # Generalised Advantage Estimation
@@ -82,10 +82,10 @@ class Agent:
         # Q&A Loss
         L_policy_qa = self.policy_qa_param * (reward_qa + advantage.squeeze()) * log_prob_qa
         L_entropy_qa = self.entropy_qa_param * entropy_qa
-        L_qa = (L_policy_qa + L_entropy_qa).mean().to(self.device)
+        L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
 
         # Total loss
-        total_loss = -(L_clip + L_qa - L_value + L_entropy).to(self.device)
+        total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
 
         # Update params
         self.optimizer.zero_grad()
@@ -101,7 +101,7 @@ class Agent:
             advantage = self.gamma * self.lmbda * advantage + delta
             advantage_list.append([advantage])
         advantage_list.reverse()
-        advantage = torch.FloatTensor(advantage_list).to(self.device)
+        advantage = torch.FloatTensor(advantage_list).to(device)
         return advantage
 
     def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q):
@@ -124,18 +124,18 @@ class Agent:
     def get_batch(self):
         trans = Transition(*zip(*self.data))
 
-        state = torch.FloatTensor(trans.state).to(self.device)
-        answer = torch.FloatTensor(trans.answer).to(self.device)
+        state = torch.FloatTensor(trans.state).to(device)
+        answer = torch.FloatTensor(trans.answer).to(device)
         hidden_q = torch.cat(trans.hidden_q)
-        action = torch.FloatTensor(trans.action).to(self.device).view(-1, 1)
-        reward = torch.FloatTensor(trans.reward).to(self.device).view(-1, 1)
-        reward_qa = torch.FloatTensor(trans.reward_qa).to(self.device)
-        next_state = torch.FloatTensor(trans.next_state).to(self.device)
-        log_prob_act = torch.FloatTensor(trans.log_prob_act).to(self.device).view(-1, 1)
-        log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(self.device), trans.log_prob_qa)))
-        entropy_act = torch.FloatTensor(trans.entropy_act).to(self.device).view(-1, 1)
-        entropy_qa = torch.FloatTensor(trans.entropy_qa).to(self.device)
-        done = ~torch.BoolTensor(trans.done).to(self.device).view(-1, 1)  # You need the tilde!
+        action = torch.FloatTensor(trans.action).to(device).view(-1, 1)
+        reward = torch.FloatTensor(trans.reward).to(device).view(-1, 1)
+        reward_qa = torch.FloatTensor(trans.reward_qa).to(device)
+        next_state = torch.FloatTensor(trans.next_state).to(device)
+        log_prob_act = torch.FloatTensor(trans.log_prob_act).to(device).view(-1, 1)
+        log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(device), trans.log_prob_qa)))
+        entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1, 1)
+        entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
+        done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
         next_hidden_hist_mem = torch.cat(trans.next_hidden_hist_mem)
@@ -152,15 +152,38 @@ class Agent:
 class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
-                 policy_qa_param=1, entropy_qa_param=0.05, device="cpu"):
+                 policy_qa_param=1, entropy_qa_param=0.05):
+
+        self.action_memory = False
+
         super().__init__(model, learning_rate, lmbda, gamma,
                  clip_param, value_param, entropy_act_param,
-                 policy_qa_param, entropy_qa_param, device)
+                 policy_qa_param, entropy_qa_param)
 
     def remember(self, state, answer, hidden_q, hist_mem):
-        obs = torch.FloatTensor(state).to(self.device)
-        answer = torch.FloatTensor(answer).view((-1, 2)).to(self.device)
+        obs = torch.FloatTensor(state).to(device)
+        answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         memory = self.model.remember(obs, answer, hidden_q, hist_mem)
+        return memory
+    
+    
+class AgentMemAction(Agent):
+    def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
+                 clip_param=0.2, value_param=1, entropy_act_param=0.01,
+                 policy_qa_param=1, entropy_qa_param=0.05):
+
+        self.action_memory = True
+
+        super().__init__(model, learning_rate, lmbda, gamma,
+                 clip_param, value_param, entropy_act_param,
+                 policy_qa_param, entropy_qa_param)
+
+
+    def remember(self, state, action, answer, hidden_q, hist_mem):
+        action = torch.Tensor(action).unsqueeze(0).to(device)
+        obs = torch.FloatTensor(state).to(device)
+        answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
+        memory = self.model.remember(obs, action, answer, hidden_q, hist_mem)
         return memory
 
 
