@@ -44,9 +44,10 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 3000
+    N_eps: float = 500
     train_log_interval: float = 25
-    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
+    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
+    env_name: str =  "MiniGrid-Empty-5x5-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -60,7 +61,7 @@ def run_experiment(USE_WANDB, **kwargs):
     cfg = Config(**kwargs)
 
     if USE_WANDB:
-        wandb.init(project='ask_before_you_act', config=asdict(cfg))
+        run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
         logger = wandb
     else:
         class Logger:
@@ -105,6 +106,8 @@ def run_experiment(USE_WANDB, **kwargs):
         _, train_reward = train(env, agent, logger, exploration=True, n_episodes=cfg.N_eps,
                                 log_interval=cfg.train_log_interval, verbose=True)
 
+    if USE_WANDB:
+        run.finish()
     return train_reward
 
 
@@ -139,7 +142,7 @@ if __name__ == "__main__":
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
-            train_reward = run_experiment(False, ans_random=ans_random)
+            train_reward = run_experiment(True, ans_random=ans_random)
 
             # Store result for every run
             runs_reward.append(train_reward)

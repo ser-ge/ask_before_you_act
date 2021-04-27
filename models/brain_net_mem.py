@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as distributions
 from language_model.model import Model as QuestionRNN
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class BrainNetMem(nn.Module):
     def __init__(self, question_rnn, action_dim=7, vocab_size=10):
@@ -26,7 +27,7 @@ class BrainNetMem(nn.Module):
 
         # CNN output is 64 dims
         # Assuming qa_history is also 64
-        self.question_rnn = question_rnn
+        self.question_rnn = question_rnn.to(device)
         self.softmax = nn.Softmax(dim=-1)
 
     def policy(self, obs, answer, word_lstm_hidden):
@@ -57,7 +58,7 @@ class BrainNetMem(nn.Module):
     def gen_question(self, obs, hidden_hist_mem):
         encoded_obs = self.encode_obs(obs)
         hx = torch.cat((encoded_obs, hidden_hist_mem.view(-1, 64)), 1)
-        cx = torch.randn(hx.shape)  # (batch, hidden_size)
+        cx = torch.randn(hx.shape).to(device)  # (batch, hidden_size)
         entropy_qa = 0
         log_probs_qa = []
         words = ['<sos>']
@@ -65,7 +66,7 @@ class BrainNetMem(nn.Module):
         memory = (hx, cx)
 
         while words[-1] != '<eos>':
-            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0)
+            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0).to(device)
             logits, memory = self.question_rnn.process_single_input(x, memory)
             dist = self.softmax(logits.squeeze())
             m = distributions.Categorical(dist)

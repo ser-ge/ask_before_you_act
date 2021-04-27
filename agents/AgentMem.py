@@ -37,6 +37,7 @@ class AgentMem:
         # Will this be taking the history of questions?
         # And history of states?
         observation = torch.FloatTensor(observation).to(device)
+        # breakpoint()
         tokens, hx, log_probs_qa, entropy_qa = self.model.gen_question(observation, hidden_hist_mem)
         output = ' '.join(tokens)
         return output, hx, log_probs_qa, entropy_qa
@@ -119,7 +120,7 @@ class AgentMem:
     def clip_loss(self, action, advantage, answer, log_prob_act, state, word_lstm_hidden):
         logits = self.model.policy(state, answer, word_lstm_hidden)
         probs = F.softmax(logits, dim=-1)
-        pi_a = probs.squeeze(1).gather(1, torch.LongTensor(action.long()).to(device))
+        pi_a = probs.squeeze(1).gather(1, action.long())
         ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
         surrogate1 = ratio * advantage
         surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
@@ -144,6 +145,8 @@ class AgentMem:
         entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1, 1)
         entropy_qa = torch.FloatTensor(trans.entropy_qa).to(device)
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
+
+
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
         next_hidden_hist_mem = torch.cat(trans.next_hidden_hist_mem)
@@ -158,7 +161,7 @@ class AgentMem:
                 next_cell_hist_mem)
 
     def init_memory(self):
-        return (torch.rand(1, self.model.mem_hidden_dim),
-                torch.rand(1, self.model.mem_hidden_dim))
+        return (torch.rand(1, self.model.mem_hidden_dim).to(device),
+                torch.rand(1, self.model.mem_hidden_dim).to(device))
 
 
