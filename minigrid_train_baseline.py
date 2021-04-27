@@ -5,7 +5,7 @@ import gym_minigrid
 import torch
 
 from agents import BaselineAgent
-from utils import GAEtrain
+from utils import BaselineTrain
 import numpy as np
 
 # Environment
@@ -44,9 +44,9 @@ for i in range(runs):
                                    lr, gamma, clip, value_param, entropy_param)
     print(agent.model)
 
-    _, train_reward = GAEtrain.GAEtrain(env, agent, exploration=True,
-                                        n_episodes=N_eps, log_interval=train_log_interval,
-                                        verbose=True)
+    _, train_reward = BaselineTrain.GAEtrain(env, agent, exploration=True,
+                                             n_episodes=N_eps, log_interval=train_log_interval,
+                                             verbose=True)
 
     # store result for every run
     runs_reward.append(train_reward)

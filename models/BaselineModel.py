@@ -3,9 +3,9 @@
 import torch.nn as nn
 
 
-class SharedCNN(nn.Module):
+class BaselineCNN(nn.Module):
     def __init__(self, action_dim=7):
-        super(SharedCNN, self).__init__()
+        super().__init__()
 
         self.image_conv = nn.Sequential(
             nn.Conv2d(3, 16, (2, 2)),
@@ -18,6 +18,7 @@ class SharedCNN(nn.Module):
 
         self.policy_head = nn.Linear(64, action_dim)
         self.value_head = nn.Linear(64, 1)
+        self.activation = nn.ReLU()
 
     def forward(self, x, flag="policy"):
         # Shared Body

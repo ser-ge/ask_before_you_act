@@ -7,13 +7,18 @@ import torch
 import numpy as np
 
 import matplotlib.pyplot as plt
-import seaborn as snsa
+import seaborn as sns
 import pandas as pd
 
+from agents.BaselineAgent import PPOAgent
 from agents.Agent import Agent, AgentMem
+
+from models.BaselineModel import BaselineCNN
 from models.brain_net import BrainNet, BrainNetMem
+
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
+from utils.BaselineTrain import GAEtrain
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -51,6 +56,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = False
+    baseline: bool = True
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -84,11 +90,23 @@ def run_experiment(USE_WANDB, **kwargs):
                         ans_random=cfg.ans_random)
 
     # Agent
-    if cfg.use_mem:
+    if cfg.baseline:
+        model = BaselineCNN()
+        agent = PPOAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                         cfg.value_param, cfg.entropy_act_param)
+
+        _, train_reward = GAEtrain(env, agent, logger, n_episodes=cfg.N_eps,
+                                   log_interval=cfg.train_log_interval, verbose=True)
+
+    elif cfg.use_mem:
         model = BrainNetMem(question_rnn)
         agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
+
+        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
+
 
     else:
         model = BrainNet(question_rnn)
@@ -96,9 +114,9 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
+        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
 
-    _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
-                            log_interval=cfg.train_log_interval, verbose=True)
 
     if USE_WANDB:
         run.finish()
