@@ -1,0 +1,56 @@
+notebook: https://drive.google.com/file/d/1TuPzN9htN87rInMRuk0UItfMoO9GvOR5/view?usp=sharing
+
+sweep_config = {
+    'method': 'bayes', #grid, random
+    'metric': {
+      'name': 'valid_acc',
+      'goal': 'maximize'   
+    },
+    'early_terminate': {
+      'type': 'hyperband',
+      'min_iter': 10
+    },
+    'parameters': {
+        'epochs': {
+            'value': 100
+        },
+        'batch_size':{
+            'values':[32, 64, 128, 256, 512]
+        },
+        'dropout': {
+        # a flat distribution between 0.8 and 0.9999
+        'distribution': 'uniform',
+        'min': 0.001,
+        'max': 0.999
+        },
+        'learning_rate': {
+        # integers between 0.00001 and 0.1
+        # with evenly-distributed logarithms 
+        'distribution': 'log_uniform',
+        'q': 1,
+        'min': math.log(1e-7),
+        'max': math.log(1),
+        },
+        'momentum': {
+        # a flat distribution between 0.8 and 0.9999
+        'distribution': 'uniform',
+        'min': 0.001,
+        'max': 0.999
+        },
+        'lstm_hidden_dim':{
+            'values':[32, 64, 128, 256, 512]
+        },
+        'fc_hidden_dim':{
+            'values':[32, 64, 128, 256, 512]
+        },
+        'lstm_layers':{
+            'values':[1, 2]
+        },
+        'optimizer': {
+            'values': ['adam']
+        },
+        'bidirectional': {
+            'values': [True]
+        }
+    }
+}
