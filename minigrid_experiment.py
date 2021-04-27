@@ -51,7 +51,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
-    use_action: bool = False
+    use_action: bool = True
 
 
 def run_experiment(USE_WANDB, **kwargs):

@@ -180,7 +180,7 @@ class AgentMemAction(Agent):
 
 
     def remember(self, state, action, answer, hidden_q, hist_mem):
-        action = torch.Tensor(action).unsqueeze(0).to(device)
+        action = torch.FloatTensor([action]).unsqueeze(0)
         obs = torch.FloatTensor(state).to(device)
         answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         memory = self.model.remember(obs, action, answer, hidden_q, hist_mem)
