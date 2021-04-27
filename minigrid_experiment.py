@@ -7,7 +7,7 @@ import torch
 import numpy as np
 
 import matplotlib.pyplot as plt
-import seaborn as snsa
+import seaborn as sns
 import pandas as pd
 
 from agents.Agent import Agent, AgentMem
@@ -85,6 +85,7 @@ def run_experiment(USE_WANDB, **kwargs):
 
     # Agent
     if cfg.use_mem:
+        print('Remembering things')
         model = BrainNetMem(question_rnn)
         agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     # Store data for each run
     signature = str(random.randint(10000, 90000))
     runs_reward = []
-    total_runs = 20
+    total_runs = 2
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
