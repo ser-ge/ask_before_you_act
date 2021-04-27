@@ -67,7 +67,7 @@ class BrainNet(nn.Module):
             entropy_qa += m.entropy().item()
             word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
             words.append(word)
-            if len(words) > 10: break
+            if len(words) > 6: break
 
         entropy_qa /= len(words)
 
