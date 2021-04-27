@@ -153,9 +153,9 @@ class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
                  policy_qa_param=1, entropy_qa_param=0.05):
-        super().__init__(model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
-                 clip_param=0.2, value_param=1, entropy_act_param=0.01,
-                 policy_qa_param=1, entropy_qa_param=0.05)
+        super().__init__(model, learning_rate, lmbda, gamma,
+                 clip_param, value_param, entropy_act_param,
+                 policy_qa_param, entropy_qa_param)
 
     def remember(self, state, answer, hidden_q, hist_mem):
         obs = torch.FloatTensor(state).to(device)
