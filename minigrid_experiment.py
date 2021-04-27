@@ -150,7 +150,7 @@ if __name__ == "__main__":
     # Store data for each run
     signature = str(random.randint(10000, 90000))
     runs_reward = []
-    total_runs = 20
+    total_runs = 2
     for ans_random in (True, False):
         for runs in range(total_runs):
             print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. ANS - {ans_random} =================")

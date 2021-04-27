@@ -2,13 +2,16 @@
 import torch
 import torch.nn as nn
 import torch.distributions as distributions
+
 from language_model.model import Model as QuestionRNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class BrainNet(nn.Module):
-    def __init__(self, question_rnn, action_dim=7):
+    def __init__(self, question_rnn, action_dim=7, hidden_q_dim=128, mem_hidden_dim=64):
         super().__init__()
+
+        self.required_output_of_cnn_dim = hidden_q_dim - mem_hidden_dim
 
         self.image_conv = nn.Sequential(
             nn.Conv2d(3, 16, (2, 2)),
@@ -16,13 +19,13 @@ class BrainNet(nn.Module):
             nn.MaxPool2d((2, 2)),
             nn.Conv2d(16, 32, (2, 2)),
             nn.ReLU(),
-            nn.Conv2d(32, 64, (2, 2)),
+            nn.Conv2d(32, self.required_output_of_cnn_dim, (2, 2)),
             nn.ReLU())
 
-        self.mem_hidden_dim = 64
-
-        self.policy_head = nn.Linear(194, action_dim)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
-        self.value_head = nn.Linear(194, 1)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
+        self.mem_hidden_dim = mem_hidden_dim
+        self.eventual_input_dim = hidden_q_dim + 2 + mem_hidden_dim
+        self.policy_head = nn.Linear(self.eventual_input_dim, action_dim)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
+        self.value_head = nn.Linear(self.eventual_input_dim , 1)  # 194 is 128 of hx + 2 of answer + 64 obs CNN
 
         # CNN output is 64 dims
         # Assuming qa_history is also 64
@@ -46,7 +49,7 @@ class BrainNet(nn.Module):
 
     def gen_question(self, obs, hidden_hist_mem):
         encoded_obs = self.encode_obs(obs)
-        hx = torch.cat((encoded_obs, hidden_hist_mem.view(-1, 64)), 1)
+        hx = torch.cat((encoded_obs, hidden_hist_mem.view(-1, self.mem_hidden_dim)), 1)
         cx = torch.randn(hx.shape).to(device)  # (batch, hidden_size)
         entropy_qa = 0
         log_probs_qa = []
@@ -74,15 +77,16 @@ class BrainNet(nn.Module):
 
     def encode_obs(self, obs):
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
-        obs_encoding = self.image_conv(x).view(-1, 64)  # x: (batch, hidden)
+        obs_encoding = self.image_conv(x).view(-1, self.required_output_of_cnn_dim)  # x: (batch, hidden)
         return obs_encoding
 
 
 class BrainNetMem(BrainNet):
     def __init__(self, question_rnn):
         super().__init__(question_rnn, action_dim=7)
-        # 201 is 128 of hx + 7 action_one_hot + 2 of answer + 64 obs CNN
-        self.memory_rnn = nn.LSTMCell(201, self.mem_hidden_dim)
+
+        self.memory_rnn = nn.LSTMCell(self.eventual_input_dim+action_dim, self.mem_hidden_dim)
+
 
     def remember(self, obs, action, answer, hidden_q, memory):
         encoded_obs = self.encode_obs(obs)
