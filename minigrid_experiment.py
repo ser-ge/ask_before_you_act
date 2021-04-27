@@ -7,13 +7,18 @@ import torch
 import numpy as np
 
 import matplotlib.pyplot as plt
-import seaborn as snsa
+import seaborn as sns
 import pandas as pd
 
-from agents.Agent import Agent, AgentMem, AgentMemAction
-from models.brain_net import BrainNet, BrainNetMem, BrainNetMemAction
+from agents.BaselineAgent import PPOAgent
+from agents.Agent import Agent, AgentMem
+
+from models.BaselineModel import BaselineCNN
+from models.brain_net import BrainNet, BrainNetMem
+
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
+from utils.BaselineTrain import GAEtrain
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -50,73 +55,13 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = True
-    use_action: bool = False
+    use_mem: bool = False
+    baseline: bool = True
 
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 device = "cpu"
-
-
-sweep_config = {
-
-       'method': 'bayes'
-
-       'metric': {
-
-         'name': 'eps_reward',
-
-         'goal': 'maximize'
-
-       },
-
-       'parameters': {
-
-           'entropy_qa_param': {
-
-               'values': [32, 64, 96, 128, 256]
-
-           },
-
-           'entropy_act_param': {
-
-               'min':
-
-           },
-
-           'lr': {
-
-               'values': [5, 10, 15]
-
-           }
-           'value_param': {
-
-               'values': [5, 10, 15]
-
-           },
-
-           'policy_qa_param': {
-
-               'values': [5, 10, 15]
-
-           },
-
-           'undefined_error_reward': {
-
-               'values': [5, 10, 15]
-
-           },
-
-           'syntax_error_reward': {
-
-               'values': [5, 10, 15]
-
-           }
-
-       }
-
-   }
 
 
 def run_experiment(USE_WANDB, **kwargs):
@@ -150,30 +95,33 @@ def run_experiment(USE_WANDB, **kwargs):
                         ans_random=cfg.ans_random)
 
     # Agent
-    if cfg.use_mem:
-        if cfg.use_action:
-            print('Remembering things, including actions')
-            model = BrainNetMemAction(question_rnn)
-            agent = AgentMemAction(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                          cfg.value_param, cfg.entropy_act_param,
-                          cfg.policy_qa_param, cfg.entropy_qa_param)
-        else:
-            print('Remembering things, but not actions')
-            model = BrainNetMem(question_rnn)
-            agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                          cfg.value_param, cfg.entropy_act_param,
-                          cfg.policy_qa_param, cfg.entropy_qa_param)
+    if cfg.baseline:
+        model = BaselineCNN()
+        agent = PPOAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                         cfg.value_param, cfg.entropy_act_param)
+
+        _, train_reward = GAEtrain(env, agent, logger, n_episodes=cfg.N_eps,
+                                   log_interval=cfg.train_log_interval, verbose=True)
+
+    elif cfg.use_mem:
+        model = BrainNetMem(question_rnn)
+        agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                      cfg.value_param, cfg.entropy_act_param,
+                      cfg.policy_qa_param, cfg.entropy_qa_param)
+
+        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
+
 
     else:
-        print('Not remembering things')
         model = BrainNet(question_rnn)
         agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
+        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
 
-    _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
-                            log_interval=cfg.train_log_interval, verbose=True)
 
     if USE_WANDB:
         run.finish()
@@ -207,10 +155,10 @@ if __name__ == "__main__":
     # Store data for each run
     signature = str(random.randint(10000, 90000))
     runs_reward = []
-    total_runs = 20
-    for runs in range(total_runs):
-        for ans_random in (True, False):
-            print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
+    total_runs = 2
+    for ans_random in (True, False):
+        for runs in range(total_runs):
+            print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. ANS - {ans_random} =================")
             train_reward = run_experiment(False, ans_random=ans_random)
 
             # Store result for every run
