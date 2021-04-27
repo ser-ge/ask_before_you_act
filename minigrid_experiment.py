@@ -42,8 +42,8 @@ class Config:
     entropy_qa_param: float = 0.05
     N_eps: float = 500
     train_log_interval: float = 25
-    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
-    env_name: str = "MiniGrid-Empty-8x8-v0"
+    env_name: str = "MiniGrid-DoorKey-5x5-v0"  # "MiniGrid-MultiRoom-N2-S4-v0" "MiniGrid-Empty-5x5-v0"
+    # env_name: str = "MiniGrid-Empty-8x8-v0"
     ans_random: bool = False
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
@@ -57,8 +57,71 @@ USE_WANDB = True
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 device = "cpu"
-def run_experiment(USE_WANDB, **kwargs):
-    cfg = Config(**kwargs)
+
+
+sweep_config = {
+
+       'method': 'bayes'
+
+       'metric': {
+
+         'name': 'eps_reward',
+
+         'goal': 'maximize'
+
+       },
+
+       'parameters': {
+
+           'entropy_qa_param': {
+
+               'values': [32, 64, 96, 128, 256]
+
+           },
+
+           'entropy_act_param': {
+
+               'min':
+
+           },
+
+           'lr': {
+
+               'values': [5, 10, 15]
+
+           }
+           'value_param': {
+
+               'values': [5, 10, 15]
+
+           },
+
+           'policy_qa_param': {
+
+               'values': [5, 10, 15]
+
+           },
+
+           'undefined_error_reward': {
+
+               'values': [5, 10, 15]
+
+           },
+
+           'syntax_error_reward': {
+
+               'values': [5, 10, 15]
+
+           }
+
+       }
+
+   }
+
+
+cfg = Config(**kwargs)
+
+def run_experiment(USE_WANDB, config):
 
     if USE_WANDB:
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
@@ -136,8 +199,8 @@ if __name__ == "__main__":
     signature = str(random.randint(10000, 90000))
     runs_reward = []
     total_runs = 20
-    for ans_random in (True, False):
-        for runs in range(total_runs):
+    for runs in range(total_runs):
+        for ans_random in (True, False):
             print(f"========================== TRAINING - RUN {1 + runs:.0f}/{total_runs:.0f} ==========================")
             train_reward = run_experiment(USE_WANDB, ans_random=ans_random)
 
