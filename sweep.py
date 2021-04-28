@@ -67,7 +67,7 @@ USE_WANDB = True
 sweep_config = {
     "name" : "8 by 8 sweeep",
     "method": "bayes",
-    "metric": {"name": "eps_reward", "goal": "maximize"},
+    "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
 
     "parameters": {
         "entropy_qa_param": {
