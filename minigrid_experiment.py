@@ -49,13 +49,13 @@ class Config:
     train_log_interval: float = 25
     # env_name: str = "MiniGrid-Empty-8x8-v0"
     env_name: str = "MiniGrid-Empty-5x5-v0"
-    ans_random: bool = False
+    ans_random: float = 0
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = False
+    use_mem: bool = True
     baseline: bool = False
 
 
@@ -129,25 +129,25 @@ def run_experiment(USE_WANDB, **kwargs):
 
 def plot_experiment(averaged_data, total_runs, window=25):
 
-    avg_rnd = averaged_data['Random Noise'].rolling(window).mean()
-    avg_good = averaged_data['Actual Information'].rolling(window).mean()
-    advantage = pd.Series(avg_rnd - avg_good)
+    # avg_rnd = averaged_data['Random Noise'].rolling(window).mean()
+    # avg_good = averaged_data['Actual Information'].rolling(window).mean()
+    advantage = pd.Series(averaged_data.iloc[:,0] - averaged_data.iloc[:,-1])
     plt.style.use('dark_background')
     fig, axs = plt.subplots(2, 1, sharex='all')
     fig.tight_layout()
 
-    axs[0].plot(avg_rnd,color='red')
-    axs[0].plot(avg_good,color='green')
+    axs[0].plot(averaged_data.rolling(window).mean())
+    # axs[0].plot(avg_good,color='green')
     axs[0].set_title(f"Reward training curves, smoothed over {total_runs} runs")
     axs[0].set_xlabel("Episodes")
     axs[0].set_ylabel(f"{window} ep moving avg of mean agent reward")
+    axs[0].legend(averaged_data.columns)
 
     axs[1].plot(advantage,color='blue')
-    axs[1].set_title("Advantage of QA Agent")
+    axs[1].set_title("Advantage of no random over random Agent")
     axs[1].set_xlabel("Episodes")
-
     plt.show()
-    fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
+    # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
 
 
 if __name__ == "__main__":
@@ -157,15 +157,15 @@ if __name__ == "__main__":
     runs_reward = []
     total_runs = 5
     data_to_be_averaged = np.zeros([cfg.N_eps,total_runs])
-    averaged_data = pd.DataFrame(columns=['Random Noise','Actual Information'])
-
+    epsilon_range = np.linspace(0, 1, 5)
+    averaged_data = pd.DataFrame(columns=[i for i in epsilon_range])
     column_number = 0
 
 
-    for ans_random in (True, False):
+    for epsilon in epsilon_range:
         for runs in range(total_runs):
-            print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. ANS - {ans_random} =================")
-            train_reward = run_experiment(False, ans_random=ans_random)
+            print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. RandAnsEps- {epsilon} =================")
+            train_reward = run_experiment(False, ans_random=epsilon)
             # you set a 'total_runs' parameter above
             # you then will take an average of the rewards achieved across these runs
             # i.e. you'll take the mean over the x axis of the rewards series..
@@ -180,6 +180,5 @@ if __name__ == "__main__":
     print(averaged_data)
     plot_experiment(averaged_data, total_runs)
     np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", runs_reward)
-
 
 
