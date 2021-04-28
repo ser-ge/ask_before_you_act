@@ -31,3 +31,15 @@ class BaselineCNN(nn.Module):
         elif flag == "value":
             x_val = self.value_head(x)
             return x_val
+
+
+class BaselineMem(BaselineCNN):  # TODO - check memory for baseline
+    def __init__(self, action_dim=7):
+        super().__init__(action_dim)
+        self.memory_rnn = nn.LSTMCell(7 + 64, 64)
+
+    def remember(self, obs, action, memory):
+        encoded_obs = self.encode_obs(obs)
+        x = torch.cat((encoded_obs, action), 1)
+        return self.memory_rnn(x, memory)
+

@@ -119,3 +119,18 @@ class PPOAgent:
         self.data = []
 
         return obs, a, r, next_obs, done, log_prob, entropy
+
+
+class PPOAgentMem(PPOAgent):  # TODO - check memory baseline agent
+    def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
+                 clip_param=0.2, value_param=1, entropy_act_param=0.01):
+        super().__init__(model, learning_rate, lmbda, gamma,
+                         clip_param, value_param, entropy_act_param)
+
+    def remember(self, state, action, memory):
+        action_one_hot = torch.zeros((1, 7)).to(device)
+        action_one_hot[0, action] = 1
+        obs = torch.FloatTensor(state).to(device)
+        mem = self.model.remember(obs, action_one_hot, memory)
+        return mem
+

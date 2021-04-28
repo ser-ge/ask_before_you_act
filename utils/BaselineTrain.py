@@ -3,6 +3,8 @@ from time import sleep
 
 import numpy as np
 
+# TODO - Unify trainer for PPOAgentMem and PPOAgent
+
 
 def GAEtrain(env, agent, logger, n_episodes=1000,
              log_interval=50, verbose=False):
