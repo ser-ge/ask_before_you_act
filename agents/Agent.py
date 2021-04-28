@@ -87,11 +87,10 @@ class Agent:
         # Total loss
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
 
-        # Update params
-        if train:
-            self.optimizer.zero_grad()
-            total_loss.backward()
-            self.optimizer.step()
+        # Update paramss
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
 
         return total_loss.item()
 

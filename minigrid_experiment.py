@@ -17,7 +17,8 @@ from models.BaselineModel import BaselineCNN
 from models.brain_net import BrainNet, BrainNetMem
 
 from oracle.oracle import OracleWrapper
-from utils.TrainerTester import TrainerTester
+# from utils.TrainerTester import TrainerTester
+from utils.Trainer import train
 from utils.BaselineTrain import GAEtrain
 
 from language_model import Dataset, Model as QuestionRNN
@@ -110,13 +111,9 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
-        traintester = TrainerTester(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+        _, train_reward = traintest(env, agent, logger, memory=cfg.use_mem, train = cfg.train, n_episodes=cfg.N_eps,
                                 log_interval=cfg.train_log_interval, verbose=True)
 
-        if cfg.train:
-            _, train_reward = traintester.train()
-        else:
-            _, train_reward = traintester.test()
 
     else:
         model = BrainNet(question_rnn)
@@ -124,13 +121,9 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
-        traintester = TrainerTester(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
-                          log_interval=cfg.train_log_interval, verbose=True)
+        _, train_reward = traintest(env, agent, logger, memory=cfg.use_mem, train = cfg.train, n_episodes=cfg.N_eps,
+                                log_interval=cfg.train_log_interval, verbose=True)
 
-        if cfg.train:
-            _, train_reward = traintester.train()
-        else:
-            _, train_reward = traintester.test()
 
     if USE_WANDB:
         run.finish()
@@ -175,7 +168,7 @@ if __name__ == "__main__":
     for epsilon in epsilon_range:
         for runs in range(total_runs):
             print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. RandAnsEps- {epsilon} =================")
-            train_reward = run_experiment(False, ans_random=epsilon, train=True)
+            train_reward = run_experiment(False, ans_random=epsilon, train=cfg.train)
             # you set a 'total_runs' parameter above
             # you then will take an average of the rewards achieved across these runs
             # i.e. you'll take the mean over the x axis of the rewards series..

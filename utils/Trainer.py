@@ -27,8 +27,8 @@ Transition = namedtuple(
 )
 
 
-def train(env, agent, logger, n_episodes=1000,
-          log_interval=50, memory=False, verbose=False):
+def traintest(env, agent, logger, n_episodes=1000,
+          log_interval=50, memory=False, train=True, verbose=False):
     episode = 0
 
     episode_reward = []
@@ -86,14 +86,15 @@ def train(env, agent, logger, n_episodes=1000,
 
         if done:
             # Update
-            episode_loss = agent.update()
+            if train:
+                episode_loss = agent.update()
+                loss_history.append(episode_loss)
 
             # Reset episode
             state = env.reset()['image']  # Discard other info
             hist_mem = agent.init_memory()  # Initialize memory
             step = 0
 
-            loss_history.append(episode_loss)
             reward_history.append(sum(episode_reward))
 
             logger.log(
