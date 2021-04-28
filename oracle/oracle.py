@@ -116,7 +116,7 @@ class Answer(Enum):
 
 class OracleWrapper(gym.core.Wrapper):
 
-    def __init__(self, env, syntax_error_reward=-0.1, undefined_error_reward=-0.1, ans_random=False):
+    def __init__(self, env, syntax_error_reward=-0.1, undefined_error_reward=-0.1, ans_random=0):
 
         super().__init__(env)
 
@@ -132,7 +132,9 @@ class OracleWrapper(gym.core.Wrapper):
 
         try:
 
-            if self.ans_random:  # TODO - still penalize if syntax is incorrect?
+            if np.random.rand() < self.ans_random:  # TODO - still penalize if syntax is incorrect?
+                # if a draw from a uniform distribution returns a value less than the epsilon you
+                # pass, then, return a random answer
                 _ = self.oracle.answer(question, full_grid)
                 ans = random.choice(list(Answer))
 

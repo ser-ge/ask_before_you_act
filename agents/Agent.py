@@ -80,7 +80,7 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = self.policy_qa_param * (reward_qa + advantage.squeeze()) * log_prob_qa
+        L_policy_qa = (self.policy_qa_param * reward_qa + advantage.squeeze()) * log_prob_qa
         L_entropy_qa = self.entropy_qa_param * entropy_qa
         L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
 
