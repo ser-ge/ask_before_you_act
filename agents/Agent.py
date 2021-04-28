@@ -52,7 +52,7 @@ class Agent:
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
-    def update(self):
+    def update(self,train=True):
         state, answer, hidden_q, action, reward, reward_qa, next_state, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
         cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
@@ -87,7 +87,7 @@ class Agent:
         # Total loss
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
 
-        # Update params
+        # Update paramss
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()

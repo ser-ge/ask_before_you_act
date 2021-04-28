@@ -17,6 +17,7 @@ from models.BaselineModel import BaselineCNN
 from models.brain_net import BrainNet, BrainNetMem
 
 from oracle.oracle import OracleWrapper
+# from utils.TrainerTester import TrainerTester
 from utils.Trainer import train
 from utils.BaselineTrain import GAEtrain
 
@@ -29,6 +30,7 @@ import wandb
 
 @dataclass
 class Config:
+    train: bool = True
     epochs: int = 30
     batch_size: int = 256
     sequence_len: int = 10
@@ -109,7 +111,7 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
-        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+        _, train_reward = traintest(env, agent, logger, memory=cfg.use_mem, train = cfg.train, n_episodes=cfg.N_eps,
                                 log_interval=cfg.train_log_interval, verbose=True)
 
 
@@ -119,8 +121,9 @@ def run_experiment(USE_WANDB, **kwargs):
                       cfg.value_param, cfg.entropy_act_param,
                       cfg.policy_qa_param, cfg.entropy_qa_param)
 
-        _, train_reward = train(env, agent, logger, memory=cfg.use_mem, n_episodes=cfg.N_eps,
+        _, train_reward = traintest(env, agent, logger, memory=cfg.use_mem, train = cfg.train, n_episodes=cfg.N_eps,
                                 log_interval=cfg.train_log_interval, verbose=True)
+
 
     if USE_WANDB:
         run.finish()
@@ -132,7 +135,7 @@ def plot_experiment(averaged_data, total_runs, window=25):
     # avg_rnd = averaged_data['Random Noise'].rolling(window).mean()
     # avg_good = averaged_data['Actual Information'].rolling(window).mean()
     advantage = pd.Series(averaged_data.iloc[:,0] - averaged_data.iloc[:,-1])
-    plt.style.use('dark_background')
+    plt.style.use('default')
     fig, axs = plt.subplots(2, 1, sharex='all')
     fig.tight_layout()
 
@@ -154,7 +157,7 @@ if __name__ == "__main__":
     # Store data for each run
     cfg = Config()
     signature = str(random.randint(10000, 90000))
-    runs_reward = []
+    # runs_reward = []
     total_runs = 5
     data_to_be_averaged = np.zeros([cfg.N_eps,total_runs])
     epsilon_range = np.linspace(0, 1, 5)
@@ -165,7 +168,7 @@ if __name__ == "__main__":
     for epsilon in epsilon_range:
         for runs in range(total_runs):
             print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. RandAnsEps- {epsilon} =================")
-            train_reward = run_experiment(False, ans_random=epsilon)
+            train_reward = run_experiment(False, ans_random=epsilon, train=cfg.train)
             # you set a 'total_runs' parameter above
             # you then will take an average of the rewards achieved across these runs
             # i.e. you'll take the mean over the x axis of the rewards series..
@@ -179,6 +182,6 @@ if __name__ == "__main__":
     print('Runs Complete!')
     print(averaged_data)
     plot_experiment(averaged_data, total_runs)
-    np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", runs_reward)
+    # np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", averaged_data)
 
 
