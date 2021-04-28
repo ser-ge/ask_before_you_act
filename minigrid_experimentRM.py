@@ -10,15 +10,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from agents.BaselineAgent import PPOAgent
+from agents.BaselineAgent import BaselineAgent, BaselineAgentMem
 from agents.Agent import Agent, AgentMem
 
-from models.BaselineModel import BaselineCNN
+from models.BaselineModel import BaselineModel, BaselineModelMem
 from models.brain_net import BrainNet, BrainNetMem
 
 from oracle.oracle import OracleWrapper
 # from utils.TrainerTester import TrainerTester
-from utils.Trainer import train
+from utils.Trainer import traintest
 from utils.BaselineTrain import GAEtrain
 
 from language_model import Dataset, Model as QuestionRNN
@@ -58,7 +58,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
-    baseline: bool = False
+    baseline: bool = True
 
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -98,11 +98,11 @@ def run_experiment(USE_WANDB, **kwargs):
 
     # Agent
     if cfg.baseline:
-        model = BaselineCNN()
-        agent = PPOAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+        model = BaselineModel()
+        agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                          cfg.value_param, cfg.entropy_act_param)
 
-        _, train_reward = GAEtrain(env, agent, logger, n_episodes=cfg.N_eps,
+        _, train_reward = traintest(env, agent, logger, n_episodes=cfg.N_eps,
                                    log_interval=cfg.train_log_interval, verbose=True)
 
     elif cfg.use_mem:
