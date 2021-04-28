@@ -1,6 +1,7 @@
 # Environment
 import random
-
+from pathlib import Path
+import time
 import gym
 import gym_minigrid
 import torch
@@ -8,9 +9,9 @@ import numpy as np
 
 
 # %%
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# import pandas as pd
 # %%
 from tqdm import tqdm
 
@@ -34,38 +35,14 @@ import wandb
 
 from itertools import product
 
+device = "cpu"
 
-
-def gen_configs(sweep_config):
-
-    params = sweep_config['parameters']
-
-    configs = []
-    sweep_params = {}
-    fixed_params = []
-
-
-    for param in params:
-        if 'values' in params[param].keys():
-            sweep_params[param]  = params[param]['values']
-        else:
-            fixed_params.append(param)
-
-    base_config = {param : params[param]['value'] for param in fixed_params}
-
-    for param_values in product(*list(sweep_params.values())):
-        cfg = base_config.copy()
-        for i, param in enumerate(sweep_params.keys()):
-            cfg[param] = param_values[i]
-
-        configs.append(cfg)
-
-    return configs
-
-
+RUNS_PATH = Path('./data')
+USE_WANDB = False
 
 @dataclass
 class Config:
+    "Default Arguments for experiments - Overide in sweep config"
     epochs: int = 30
     batch_size: int = 256
     sequence_len: int = 10
@@ -94,19 +71,6 @@ class Config:
     seed: int = 1
     use_mem: bool = False
     baseline: bool = False
-
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-device = "cpu"
-
-
-
-USE_WANDB = False
-
-class Logger:
-    def log(self, *args):
-        pass
 
 
 
@@ -152,16 +116,44 @@ sweep_config = {
 } }
 
 
-# %%
 
-USE_WANDB = False
-import pickle
-import time
-from pathlib import Path
 
-runs_path = Path('./data')
 
-def run_experiments(sweep_config, num_runs=2):
+
+class Logger:
+    def log(self, *args):
+        pass
+
+def gen_configs(sweep_config):
+
+    params = sweep_config['parameters']
+
+    configs = []
+    sweep_params = {}
+    fixed_params = []
+
+
+    for param in params:
+        if 'values' in params[param].keys():
+            sweep_params[param]  = params[param]['values']
+        else:
+            fixed_params.append(param)
+
+    base_config = {param : params[param]['value'] for param in fixed_params}
+
+    for param_values in product(*list(sweep_params.values())):
+        cfg = base_config.copy()
+        for i, param in enumerate(sweep_params.keys()):
+            cfg[param] = param_values[i]
+
+        configs.append(cfg)
+
+    return configs
+
+
+
+
+def run_experiments(sweep_config, num_runs=2, runs_path=RUNS_PATH):
 
     save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
 
@@ -189,6 +181,7 @@ def run_experiments(sweep_config, num_runs=2):
                 exp['train_rewards'].append(train_reward)
 
         pickle.dump(experiments, open(save_path, 'wb'))
+        print(f"Run results saved to {save_path}")
         return experiments
 
 
@@ -290,4 +283,5 @@ def plot_experiment(runs_reward, total_runs, window=25):
 
 
 
-
+if __name__ == '__main__':
+    run_experiments(sweep_config)
