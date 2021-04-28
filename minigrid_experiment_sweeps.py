@@ -166,6 +166,10 @@ def run_experiments(sweep_config, num_runs=2, runs_path=RUNS_PATH):
         wandb.agent(sweep_id, function=run_experiment)
         return
 
+    elif USE_WANDB:
+        for run in range(num_runs):
+            run_experiment(configs[0])
+
     else:
 
         experiments = [{'config' : cfg, 'train_rewards':[]} for cfg in configs]
