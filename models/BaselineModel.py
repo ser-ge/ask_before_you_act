@@ -53,7 +53,9 @@ class BaselineModelMem(BaselineModel):
         super().__init__(action_dim, mem_hidden_dim)
         self.memory_rnn = nn.LSTMCell(self.encoded_obs_dim+self.mem_hidden_dim, self.mem_hidden_dim)
 
+
     def remember(self, obs, action, memory):
         encoded_obs = self.encode_obs(obs)
         x = torch.cat((encoded_obs, action), 1)
         return self.memory_rnn(x, memory)
+
