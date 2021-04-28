@@ -101,7 +101,8 @@ def train(env, agent, logger, n_episodes=1000,
                     "questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
                     "eps_reward": sum(episode_reward),
                     "avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
-                    "loss": episode_loss
+                    "loss": episode_loss,
+                    "avg_reward_episodes" : sum(reward_history)/ len(reward_history)
                 }
             )
 
