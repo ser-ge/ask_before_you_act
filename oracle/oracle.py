@@ -117,7 +117,7 @@ class Answer(Enum):
 
 class OracleWrapper(gym.core.Wrapper):
 
-    def __init__(self, env, syntax_error_reward=-0.1, undefined_error_reward=-0.1, ans_random=0):
+    def __init__(self, env, syntax_error_reward=-0.1, undefined_error_reward=-0.1, defined_q_reward=0.2, ans_random=0):
 
         super().__init__(env)
 
@@ -126,6 +126,7 @@ class OracleWrapper(gym.core.Wrapper):
 
         self.syntax_error_reward = syntax_error_reward
         self.undefined_error_reward = undefined_error_reward
+        self.defined_q_reward = defined_q_reward
 
     def answer(self, question):
 
@@ -143,7 +144,7 @@ class OracleWrapper(gym.core.Wrapper):
                 ans = self.oracle.answer(question, full_grid)
                 ans = Answer.TRUTH if ans else Answer.FALSE
 
-            return ans, 0
+            return ans, self.defined_q_reward
 
         except MyValueError:
             return (Answer.UNDEFINED, self.undefined_error_reward)

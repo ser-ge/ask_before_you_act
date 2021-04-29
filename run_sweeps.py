@@ -10,7 +10,7 @@ import time
 from itertools import product
 from tqdm import tqdm
 
-
+import math
 import pprint
 import pickle
 
@@ -50,7 +50,7 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    train_episodes: float = 5
+    train_episodes: float = 3000
     test_episodes: float = 10
     train_log_interval: float = 50
     test_log_interval: float = 1
@@ -59,13 +59,13 @@ class Config:
     ans_random: float = 0
     undefined_error_reward: float = -0.1
     syntax_error_reward: float = -0.2
+    defined_q_reward : float = 0.2
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
     exp_mem: bool = True
-    baseline: bool = True
-
+    baseline: bool = False
 
 default_config = Config()
 
@@ -73,12 +73,69 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = False
+USE_WANDB = True
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
 
 sweep_config = {
+    "name" : "MiniGrid-KeyCorridorS6R3-v0",
+    "method": "bayes",
+    "metric": {"name": "eps_reward", "goal": "maximize"},
+
+    "parameters": {
+        "env_name" : {
+            'value' : 'MiniGrid-KeyCorridorS6R3-v0'
+            },
+
+        "entropy_qa_param": {
+            "distribution": "uniform",
+            "min": 0,
+            "max": 1,
+        },
+        "entropy_act_param": {
+            "distribution": "uniform",
+            "min": 0,
+            "max": 1,
+        },
+        "lr": {
+            "distribution": "log_uniform",
+            "min": math.log(1e-7),
+            "max": math.log(0.1),
+        },
+        "value_param": {
+            "distribution": "uniform",
+            "min": 0,
+            "max": 1,
+        },
+        "policy_qa_param": {
+            "distribution": "uniform",
+            "min": 0,
+            "max": 1,
+        },
+        # "undefined_error_reward": {
+        #     "distribution": "uniform",
+        #     "min": -1,
+        #     "max": 0,
+        # },
+        "syntax_error_reward": {
+            "distribution": "uniform",
+            "min": -1,
+            "max": 0,
+        },
+        "clip": {
+            "distribution": "uniform",
+            "min": 0,
+            "max": 0.5,
+        },
+        "ans_random" : {
+            'values' : [0, 1]
+            },
+    }
+}
+
+
+sweep_config_8_8 = {
     "name" : "8 by 8 sweeep true false",
     "method": "bayes",
     "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
@@ -136,7 +193,7 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
     save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
 
     if USE_WANDB:
-        sweep_id = wandb.sweep(config, project="ask_before_you_act")
+        sweep_id = wandb.sweep(configs, project="ask_before_you_act")
         wandb.agent(sweep_id, function=run_experiment)
         return
 
@@ -188,6 +245,7 @@ def run_experiment(cfg=default_config):
 
     env = OracleWrapper(env, syntax_error_reward=cfg.syntax_error_reward,
                         undefined_error_reward=cfg.undefined_error_reward,
+                        defined_q_reward = cfg.defined_q_reward,
                         ans_random=cfg.ans_random)
 
     # Agent
@@ -198,11 +256,9 @@ def run_experiment(cfg=default_config):
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
     test_reward = train_test(env, agent, cfg, logger, n_episodes=cfg.test_episodes,
-                              log_interval=cfg.test_log_interval, train=True, verbose=True)
-
+                              log_interval=cfg.test_log_interval, train=False, verbose=True)
 
     if USE_WANDB:run.finish()
-
     return train_reward, test_reward
 
 
@@ -290,5 +346,4 @@ def gen_configs(sweep_config):
 
 
 if __name__ == "__main__":
-
     run_experiments()
