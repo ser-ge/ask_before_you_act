@@ -6,10 +6,17 @@ import gym_minigrid
 import torch
 import numpy as np
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
+import time
+from itertools import product
+from tqdm import tqdm
 
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# import pandas as pd
+
+import pprint
+
+from pathlib import Path
 from agents.BaselineAgentRM import BaselineAgent, BaselineAgentExpMem
 from agents.AgentRM import Agent, AgentMem, AgentExpMem
 
@@ -57,22 +64,21 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = False
-    exp_mem: bool = False
+    use_mem: bool = True
+    exp_mem: bool = True
     baseline: bool = True
 
+
+default_config = Config()
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 device = "cpu"
 
-default_config = Config()
-USE_WANDB = False
+USE_WANDB = True
 
+RUNS_PATH = Path('./data')
 
-class Logger:
-    def log(self, *args):
-        pass
 
 sweep_config = {
     "name" : "8 by 8 sweeep true false",
@@ -117,8 +123,12 @@ sweep_config = {
 
 
 
+class Logger:
+    def log(self, *args):
+        pass
 
-def run_experiments(sweep_config, num_runs=2, runs_path=RUNS_PATH):
+
+def run_experiments(sweep_config=sweep_config, num_runs=2, runs_path=RUNS_PATH):
 
     save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
 
@@ -136,7 +146,7 @@ def run_experiments(sweep_config, num_runs=2, runs_path=RUNS_PATH):
 
         for i, exp in enumerate(experiments):
             config = Config(**exp['config'])
-            print(config)
+            pprint.pprint(asdict(config))
             print(f"Running Experiment {i}")
             for run in tqdm(range(num_runs)):
                 train_reward, test_reward = run_experiment(config)
@@ -146,7 +156,6 @@ def run_experiments(sweep_config, num_runs=2, runs_path=RUNS_PATH):
         pickle.dump(experiments, open(save_path, 'wb'))
         print(f"Run results saved to {save_path}")
         return experiments
-
 
 
 
@@ -279,32 +288,5 @@ def gen_configs(sweep_config):
 
 
 if __name__ == "__main__":
-    # Store data for each run
-    cfg = Config()
-    signature = str(random.randint(10000, 90000))
-    # runs_reward = []
-    total_runs = 5
-    data_to_be_averaged = np.zeros([cfg.train_episodes, total_runs])
-    epsilon_range = np.linspace(0, 1, 5)
-    averaged_data = pd.DataFrame(columns=[i for i in epsilon_range])
-    column_number = 0
 
-
-    for epsilon in epsilon_range:
-        for runs in range(total_runs):
-            print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. RandAnsEps- {epsilon} =================")
-            train_reward = run_experiment(False, ans_random=epsilon, train=cfg.train)
-            # you set a 'total_runs' parameter above
-            # you then will take an average of the rewards achieved across these runs
-            # i.e. you'll take the mean over the x axis of the rewards series..
-            data_to_be_averaged[:,runs] = train_reward
-
-        # then here you just fill in the data frame
-        averaged_data.iloc[:,column_number] = data_to_be_averaged.mean(axis=1)
-        # increment column number by 1 so that you then fill in the next column of the dataframe
-        column_number += 1
-
-    print('Runs Complete!')
-    print(averaged_data)
-    plot_experiment(averaged_data, total_runs)
-    # np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", averaged_data)
+    run_experiments()
