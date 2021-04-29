@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
 
-from utils.TrainerRM import Transition
+from utils.Trainer import Transition
 
 
 device = "cpu"

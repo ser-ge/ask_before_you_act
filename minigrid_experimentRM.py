@@ -10,22 +10,19 @@ import time
 from itertools import product
 from tqdm import tqdm
 
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-# import pandas as pd
 
 import pprint
 import pickle
 
 from pathlib import Path
-from agents.BaselineAgentRM import BaselineAgent, BaselineAgentExpMem
-from agents.AgentRM import Agent, AgentMem, AgentExpMem
+from agents.BaselineAgent import BaselineAgent, BaselineAgentExpMem
+from agents.BrainAgent import Agent, AgentMem, AgentExpMem
 
-from models.BaselineModelRM import BaselineModel, BaselineModelExpMem
-from models.brain_netRM import BrainNet, BrainNetMem, BrainNetExpMem
+from models.BaselineModel import BaselineModel, BaselineModelExpMem
+from models.BrainModel import BrainNet, BrainNetMem, BrainNetExpMem
 
 from oracle.oracle import OracleWrapper
-from utils.TrainerRM import train_test
+from utils.Trainer import train_test
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
