@@ -66,9 +66,94 @@ class Config:
 
 device = "cpu"
 
+default_config = Config()
+USE_WANDB = False
 
-def run_experiment(USE_WANDB, **kwargs):
-    cfg = Config(**kwargs)
+
+class Logger:
+    def log(self, *args):
+        pass
+
+sweep_config = {
+    "name" : "8 by 8 sweeep true false",
+    "method": "bayes",
+    "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
+    'parameters':
+    {
+    "lr": {
+        "value": 0.001
+    },
+    "clip": {
+        "value": 0.11382609211422028
+    },
+    "lmbda": {
+        "value": 0.95
+    },
+    "env_name": {
+        "value": "MiniGrid-Empty-8x8-v0"
+    },
+    "ans_random": {
+        "values": [True, False]
+    },
+    "value_param": {
+        "value": 0.8210391931653159
+    },
+    "policy_qa_param": {
+        "value": 0.507744927219129
+    },
+    "entropy_qa_param": {
+        "value": 0.28267454781905166
+    },
+    "entropy_act_param": {
+        "value": 0.08081028521575984
+    },
+    "syntax_error_reward": {
+        "value": -0.2
+    },
+    "undefined_error_reward": {
+        "value": -0.1
+    }
+} }
+
+
+
+
+def run_experiments(sweep_config, num_runs=2, runs_path=RUNS_PATH):
+
+    save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
+
+
+    if USE_WANDB:
+        sweep_id = wandb.sweep(sweep_config, project="ask_before_you_act")
+        wandb.agent(sweep_id, function=run_experiment)
+        return
+
+    else:
+        configs = gen_configs(sweep_config)
+        experiments = [{'config' : cfg, 'train_rewards':[], 'test_rewards' : []} for cfg in configs]
+
+        print(f"Total of {len(experiments)} experiments collected for {num_runs} runs each")
+
+        for i, exp in enumerate(experiments):
+            config = Config(**exp['config'])
+            print(config)
+            print(f"Running Experiment {i}")
+            for run in tqdm(range(num_runs)):
+                train_reward, test_reward = run_experiment(config)
+                exp['train_rewards'].append(train_reward)
+                exp['test_rewards'].append(test_reward)
+
+        pickle.dump(experiments, open(save_path, 'wb'))
+        print(f"Run results saved to {save_path}")
+        return experiments
+
+
+
+
+
+def run_experiment(cfg=default_config):
+
+
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
@@ -76,9 +161,6 @@ def run_experiment(USE_WANDB, **kwargs):
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
         logger = wandb
     else:
-        class Logger:
-            def log(self, *args):
-                pass
 
         logger = Logger()
 
@@ -108,9 +190,9 @@ def run_experiment(USE_WANDB, **kwargs):
                               log_interval=cfg.test_log_interval, train=True, verbose=True)
 
 
-    if USE_WANDB:
-        run.finish()
-    return train_reward
+    if USE_WANDB:run.finish()
+
+    return train_reward, test_reward
 
 
 def plot_experiment(averaged_data, total_runs, window=25):
@@ -168,6 +250,32 @@ def set_up_agent(cfg, question_rnn):
                           cfg.policy_qa_param, cfg.entropy_qa_param)
     return agent
 
+
+def gen_configs(sweep_config):
+
+    params = sweep_config['parameters']
+
+    configs = []
+    sweep_params = {}
+    fixed_params = []
+
+
+    for param in params:
+        if 'values' in params[param].keys():
+            sweep_params[param]  = params[param]['values']
+        else:
+            fixed_params.append(param)
+
+    base_config = {param : params[param]['value'] for param in fixed_params}
+
+    for param_values in product(*list(sweep_params.values())):
+        cfg = base_config.copy()
+        for i, param in enumerate(sweep_params.keys()):
+            cfg[param] = param_values[i]
+
+        configs.append(cfg)
+
+    return configs
 
 
 if __name__ == "__main__":
