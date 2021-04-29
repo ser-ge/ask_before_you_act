@@ -15,6 +15,7 @@ from tqdm import tqdm
 # import pandas as pd
 
 import pprint
+import pickle
 
 from pathlib import Path
 from agents.BaselineAgentRM import BaselineAgent, BaselineAgentExpMem
@@ -52,7 +53,7 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    train_episodes: float = 500
+    train_episodes: float = 5
     test_episodes: float = 10
     train_log_interval: float = 50
     test_log_interval: float = 1
@@ -75,8 +76,8 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = True
-
+USE_WANDB = False
+NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
 
@@ -99,7 +100,7 @@ sweep_config = {
         "value": "MiniGrid-Empty-8x8-v0"
     },
     "ans_random": {
-        "values": [True, False]
+        "values": [0, 0.5, 1]
     },
     "value_param": {
         "value": 0.8210391931653159
@@ -128,18 +129,22 @@ class Logger:
         pass
 
 
-def run_experiments(sweep_config=sweep_config, num_runs=2, runs_path=RUNS_PATH):
+
+def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH):
+
+    """
+    pickle.load(open('data/run_results_Thu Apr 29 13:14:39 2021.p', 'rb'))
+    """
 
     save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
 
-
     if USE_WANDB:
-        sweep_id = wandb.sweep(sweep_config, project="ask_before_you_act")
+        sweep_id = wandb.sweep(config, project="ask_before_you_act")
         wandb.agent(sweep_id, function=run_experiment)
         return
 
     else:
-        configs = gen_configs(sweep_config)
+        configs = gen_configs(configs)
         experiments = [{'config' : cfg, 'train_rewards':[], 'test_rewards' : []} for cfg in configs]
 
         print(f"Total of {len(experiments)} experiments collected for {num_runs} runs each")
