@@ -57,7 +57,7 @@ class Config:
     # env_name: str = "MiniGrid-Empty-8x8-v0"
     env_name: str = "MiniGrid-Empty-5x5-v0"
     ans_random: float = 0
-    undefined_error_reward: float = -0.1
+    undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
     defined_q_reward : float = 0.2
     pre_trained_lstm: bool = True
@@ -84,19 +84,23 @@ sweep_config = {
     "metric": {"name": "eps_reward", "goal": "maximize"},
 
     "parameters": {
+        # "env_name" : {
+        #     'value' : 'MiniGrid-KeyCorridorS3R1-v0'
+        #     },
+
         "env_name" : {
-            'value' : 'MiniGrid-KeyCorridorS6R3-v0'
+            'value' : 'MiniGrid-MultiRoom-N2-S4-v0'
             },
 
         "entropy_qa_param": {
             "distribution": "uniform",
             "min": 0,
-            "max": 1,
+            "max": 0.2,
         },
         "entropy_act_param": {
             "distribution": "uniform",
             "min": 0,
-            "max": 1,
+            "max": 0.2,
         },
         "lr": {
             "distribution": "log_uniform",
@@ -105,12 +109,12 @@ sweep_config = {
         },
         "value_param": {
             "distribution": "uniform",
-            "min": 0,
+            "min": 0.5,
             "max": 1,
         },
         "policy_qa_param": {
             "distribution": "uniform",
-            "min": 0,
+            "min": 0.5,
             "max": 1,
         },
         # "undefined_error_reward": {
@@ -118,18 +122,18 @@ sweep_config = {
         #     "min": -1,
         #     "max": 0,
         # },
-        "syntax_error_reward": {
-            "distribution": "uniform",
-            "min": -1,
-            "max": 0,
-        },
+        # "syntax_error_reward": {
+        #     "distribution": "uniform",
+        #     "min": -1,
+        #     "max": 0,
+        # },
         "clip": {
             "distribution": "uniform",
-            "min": 0,
-            "max": 0.5,
+            "min": 0.05,
+            "max": 0.3,
         },
         "ans_random" : {
-            'values' : [0, 1]
+            'value' :  0
             },
     }
 }
