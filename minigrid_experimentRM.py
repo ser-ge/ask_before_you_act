@@ -58,7 +58,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = False
-    exp_mem: bool = False
+    exp_mem: bool = True
     baseline: bool = True
 
 

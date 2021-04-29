@@ -165,6 +165,38 @@ class AgentMem(Agent):
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
 
+    def act(self, observation, ans, hidden_q, hidden_hist_mem):
+        # Calculate policy
+
+        # note, act doesn't actually USE hidden_hist_mem here
+        # it's just here to make trainer look nicer
+        # it gets passed to the policy, but it will similarly be ignored there too
+
+        observation = torch.FloatTensor(observation).to(device)
+        ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
+        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem)
+        action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
+        dist = distributions.Categorical(action_prob)
+        action = dist.sample()
+        probs = action_prob[action]  # Policy log prob
+        entropy = dist.entropy()  # Entropy regularizer
+        return action.detach().item(), probs, entropy
+
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q):
+        # hidden_hist_mem will be a placeholder here, passed to the policy,
+        # but then subsequently ignored by the policy, if we have initialised it to YES use
+        # memory, but not explicitly into the policy...
+
+        hidden_hist_mem = torch.zeros(128)
+
+        logits = self.model.policy(state, answer, hidden_q, hidden_hist_mem)
+        probs = F.softmax(logits, dim=-1)
+        pi_a = probs.squeeze(1).gather(1, action.long())
+        ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
+        surrogate1 = ratio * advantage
+        surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
+        L_clip = torch.min(surrogate1, surrogate2).mean()
+        return L_clip
 
 class AgentExpMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
