@@ -264,7 +264,7 @@ def plot_experiment(averaged_data, total_runs, window=25):
 
     # avg_rnd = averaged_data['Random Noise'].rolling(window).mean()
     # avg_good = averaged_data['Actual Information'].rolling(window).mean()
-    advantage = pd.Series(averaged_data.iloc[:,0] - averaged_data.iloc[:,-1])
+    advantage = pd.Series(averaged_data.iloc[:, 0] - averaged_data.iloc[:, -1])
     plt.style.use('default')
     fig, axs = plt.subplots(2, 1, sharex='all')
     fig.tight_layout()

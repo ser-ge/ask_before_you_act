@@ -137,9 +137,9 @@ def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
                 {
                     "train/eps_reward": sum(episode_reward),
                     "train/total_loss": episode_loss,
-                    "train/L_clip": L_clip,
-                    "train/L_value": L_value,
-                    "train/L_entropy": L_entropy,
+                    "train/L_clip": abs(L_clip),
+                    "train/L_value": abs(L_value),
+                    "train/L_entropy": abs(L_entropy),
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
@@ -150,11 +150,11 @@ def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
                     "train/eps_reward": sum(episode_reward),
                     "train/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
                     "train/loss": episode_loss,
-                    "train/L_clip": L_clip,
-                    "train/L_value": L_value,
-                    "train/L_entropy": L_entropy,
-                    "train/L_policy_qa": L_policy_qa,
-                    "train/L_entropy_qa": L_entropy_qa,
+                    "train/L_clip": abs(L_clip),
+                    "train/L_value": abs(L_value),
+                    "train/L_entropy": abs(L_entropy),
+                    "train/L_policy_qa": abs(L_policy_qa),
+                    "train/L_entropy_qa": abs(L_entropy_qa),
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
