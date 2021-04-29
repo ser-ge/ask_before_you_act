@@ -6,10 +6,18 @@ import gym_minigrid
 import torch
 import numpy as np
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
+import time
+from itertools import product
+from tqdm import tqdm
 
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# import pandas as pd
+
+import pprint
+import pickle
+
+from pathlib import Path
 from agents.BaselineAgentRM import BaselineAgent, BaselineAgentExpMem
 from agents.AgentRM import Agent, AgentMem, AgentExpMem
 
@@ -45,7 +53,7 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    train_episodes: float = 500
+    train_episodes: float = 5
     test_episodes: float = 10
     train_log_interval: float = 50
     test_log_interval: float = 1
@@ -57,18 +65,109 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = False
+    use_mem: bool = True
     exp_mem: bool = True
     baseline: bool = True
 
+
+default_config = Config()
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 device = "cpu"
 
+USE_WANDB = False
+NUM_RUNS = 2
+RUNS_PATH = Path('./data')
 
-def run_experiment(USE_WANDB, **kwargs):
-    cfg = Config(**kwargs)
+
+sweep_config = {
+    "name" : "8 by 8 sweeep true false",
+    "method": "bayes",
+    "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
+    'parameters':
+    {
+    "lr": {
+        "value": 0.001
+    },
+    "clip": {
+        "value": 0.11382609211422028
+    },
+    "lmbda": {
+        "value": 0.95
+    },
+    "env_name": {
+        "value": "MiniGrid-Empty-8x8-v0"
+    },
+    "ans_random": {
+        "values": [0, 0.5, 1]
+    },
+    "value_param": {
+        "value": 0.8210391931653159
+    },
+    "policy_qa_param": {
+        "value": 0.507744927219129
+    },
+    "entropy_qa_param": {
+        "value": 0.28267454781905166
+    },
+    "entropy_act_param": {
+        "value": 0.08081028521575984
+    },
+    "syntax_error_reward": {
+        "value": -0.2
+    },
+    "undefined_error_reward": {
+        "value": -0.1
+    }
+} }
+
+
+
+class Logger:
+    def log(self, *args):
+        pass
+
+
+
+def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH):
+
+    """
+    pickle.load(open('data/run_results_Thu Apr 29 13:14:39 2021.p', 'rb'))
+    """
+
+    save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
+
+    if USE_WANDB:
+        sweep_id = wandb.sweep(config, project="ask_before_you_act")
+        wandb.agent(sweep_id, function=run_experiment)
+        return
+
+    else:
+        configs = gen_configs(configs)
+        experiments = [{'config' : cfg, 'train_rewards':[], 'test_rewards' : []} for cfg in configs]
+
+        print(f"Total of {len(experiments)} experiments collected for {num_runs} runs each")
+
+        for i, exp in enumerate(experiments):
+            config = Config(**exp['config'])
+            pprint.pprint(asdict(config))
+            print(f"Running Experiment {i}")
+            for run in tqdm(range(num_runs)):
+                train_reward, test_reward = run_experiment(config)
+                exp['train_rewards'].append(train_reward)
+                exp['test_rewards'].append(test_reward)
+
+        pickle.dump(experiments, open(save_path, 'wb'))
+        print(f"Run results saved to {save_path}")
+        return experiments
+
+
+
+
+def run_experiment(cfg=default_config):
+
+
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
@@ -76,9 +175,6 @@ def run_experiment(USE_WANDB, **kwargs):
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
         logger = wandb
     else:
-        class Logger:
-            def log(self, *args):
-                pass
 
         logger = Logger()
 
@@ -108,9 +204,9 @@ def run_experiment(USE_WANDB, **kwargs):
                               log_interval=cfg.test_log_interval, train=True, verbose=True)
 
 
-    if USE_WANDB:
-        run.finish()
-    return train_reward
+    if USE_WANDB:run.finish()
+
+    return train_reward, test_reward
 
 
 def plot_experiment(averaged_data, total_runs, window=25):
@@ -169,34 +265,33 @@ def set_up_agent(cfg, question_rnn):
     return agent
 
 
+def gen_configs(sweep_config):
+
+    params = sweep_config['parameters']
+
+    configs = []
+    sweep_params = {}
+    fixed_params = []
+
+
+    for param in params:
+        if 'values' in params[param].keys():
+            sweep_params[param]  = params[param]['values']
+        else:
+            fixed_params.append(param)
+
+    base_config = {param : params[param]['value'] for param in fixed_params}
+
+    for param_values in product(*list(sweep_params.values())):
+        cfg = base_config.copy()
+        for i, param in enumerate(sweep_params.keys()):
+            cfg[param] = param_values[i]
+
+        configs.append(cfg)
+
+    return configs
+
 
 if __name__ == "__main__":
-    # Store data for each run
-    cfg = Config()
-    signature = str(random.randint(10000, 90000))
-    # runs_reward = []
-    total_runs = 5
-    data_to_be_averaged = np.zeros([cfg.train_episodes, total_runs])
-    epsilon_range = np.linspace(0, 1, 5)
-    averaged_data = pd.DataFrame(columns=[i for i in epsilon_range])
-    column_number = 0
 
-
-    for epsilon in epsilon_range:
-        for runs in range(total_runs):
-            print(f"================= RUN {1 + runs:.0f}/{total_runs:.0f} || RND. RandAnsEps- {epsilon} =================")
-            train_reward = run_experiment(False, ans_random=epsilon, train=cfg.train)
-            # you set a 'total_runs' parameter above
-            # you then will take an average of the rewards achieved across these runs
-            # i.e. you'll take the mean over the x axis of the rewards series..
-            data_to_be_averaged[:,runs] = train_reward
-
-        # then here you just fill in the data frame
-        averaged_data.iloc[:,column_number] = data_to_be_averaged.mean(axis=1)
-        # increment column number by 1 so that you then fill in the next column of the dataframe
-        column_number += 1
-
-    print('Runs Complete!')
-    print(averaged_data)
-    plot_experiment(averaged_data, total_runs)
-    # np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", averaged_data)
+    run_experiments()
