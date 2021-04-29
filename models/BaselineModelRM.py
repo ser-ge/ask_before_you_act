@@ -7,7 +7,7 @@ import torch.nn as nn
 device = 'cpu'
 
 class BaselineModel(nn.Module):
-    def __init__(self, action_dim=7):
+    def __init__(self, action_dim=7,mem_hidden_dim=64):
         super().__init__()
 
         self.cnn_encoding_dim = 64
@@ -21,8 +21,9 @@ class BaselineModel(nn.Module):
             nn.Conv2d(32, self.cnn_encoding_dim, (2, 2)),
             nn.ReLU())
 
+        self.mem_hidden_dim = mem_hidden_dim # only used in init memory to pass to agent to act
+        # but not actually passed in the pure baseline case
         self.policy_input_dim = self.cnn_encoding_dim
-
         self.policy_head = nn.Linear(self.policy_input_dim, action_dim)
         self.value_head = nn.Linear(self.policy_input_dim, 1)
         self.activation = nn.ReLU()
