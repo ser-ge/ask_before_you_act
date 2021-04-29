@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
-from utils.Trainer import TransitionNoQA
+from utils.TrainerRM import Transition
 
 device = "cpu"
 
@@ -141,4 +141,3 @@ class BaselineAgentMem(BaselineAgent):
         obs = torch.FloatTensor(state).to(device)
         memory = self.model.remember(obs, action_one_hot, hist_mem)
         return memory
-

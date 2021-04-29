@@ -26,25 +26,8 @@ Transition = namedtuple(
     ],
 )
 
-TransitionNoQA = namedtuple(
-    "Transition",
-    [
-        "state",
-        "action",
-        "reward",
-        "next_state",
-        "log_prob_act",
-        "entropy_act",
-        "done",
-        "hidden_hist_mem",
-        "cell_hist_mem",
-        "next_hidden_hist_mem",
-        "next_cell_hist_mem",
-    ],
-)
-
-def traintest(env, agent, logger, n_episodes=1000,
-          log_interval=50, memory=False, train=True, verbose=False):
+def train_test(env, agent, cfg, logger, n_episodes=1000,
+          log_interval=50, train=True, verbose=True):
     episode = 0
 
     episode_reward = []
@@ -64,22 +47,29 @@ def traintest(env, agent, logger, n_episodes=1000,
 
     while episode < n_episodes:
         # Ask before you act
-        if agent.baseline == True:
+        if cfg.baseline:
             action, log_prob_act, entropy_act = agent.act(state, hist_mem[0])
+            answer, reward_qa, question, hidden_q, log_prob_qa, entropy_qa = 6*[torch.Tensor([1]).unsqueeze(0)]
 
         else:
+            # Ask
             question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
+
+            # Logging
+            episode_qa_reward.append(reward_qa)
             qa_pairs.append([question, str(answer), reward_qa])  # Storing
+
+            # Answer
             answer = answer.decode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
-            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q,hist_mem[0])
-
+            # Act
+            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
 
         # Remember
-        if memory: # need to make this work for baseline also
-            if agent.baseline == True:
+        if cfg.use_mem:  # need to make this work for baseline also
+            if cfg.baseline:
                 next_hist_mem = agent.remember(state, action, hist_mem)
             else:
                 next_hist_mem = agent.remember(state, action, answer, hidden_q, hist_mem)
@@ -91,15 +81,9 @@ def traintest(env, agent, logger, n_episodes=1000,
         next_state = next_state['image']  # Discard other info
 
         # Store
-        if agent.baseline == True:
-            t = TransitionNoQA(state, action, reward, next_state,
-                           log_prob_act.item(), entropy_act.item(), done,
-                           hist_mem[0], hist_mem[1], next_hist_mem[0], next_hist_mem[1])
-
-        else:
-            t = Transition(state, answer, hidden_q, action, reward, reward_qa, next_state,
-                           log_prob_act.item(),log_prob_qa, entropy_act.item(), entropy_qa, done,
-                           hist_mem[0], hist_mem[1], next_hist_mem[0], next_hist_mem[1])
+        t = Transition(state, answer, hidden_q, action, reward, reward_qa, next_state,
+                       log_prob_act.item(),log_prob_qa, entropy_act.item(), entropy_qa, done,
+                       hist_mem[0], hist_mem[1], next_hist_mem[0], next_hist_mem[1])
 
         agent.store(t)
 
@@ -110,9 +94,6 @@ def traintest(env, agent, logger, n_episodes=1000,
 
         # Logging
         episode_reward.append(reward)
-
-        if agent.baseline == False:
-            episode_qa_reward.append(reward_qa)
 
         if done:
             # Update
@@ -127,24 +108,8 @@ def traintest(env, agent, logger, n_episodes=1000,
 
             reward_history.append(sum(episode_reward))
 
-            if agent.baseline:
-                logger.log(
-                    {
-                        "eps_reward": sum(episode_reward),
-                        "loss": episode_loss,
-                        "avg_reward_episodes" : sum(reward_history)/ len(reward_history)
-                    }
-                )
-            else:
-                logger.log(
-                    {
-                        "questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
-                        "eps_reward": sum(episode_reward),
-                        "avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
-                        "loss": episode_loss,
-                        "avg_reward_episodes" : sum(reward_history)/ len(reward_history)
-                    }
-                )
+            log_cases(logger, cfg, episode_loss, episode_qa_reward,
+                      episode_reward, qa_pairs, reward_history, train)
 
             episode_reward = []
             episode_qa_reward = []
@@ -158,4 +123,45 @@ def traintest(env, agent, logger, n_episodes=1000,
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}")
                 avg_syntax_r = 0
 
-    return loss_history, reward_history
+    return reward_history
+
+
+def log_cases(logger, cfg, episode_loss, episode_qa_reward, episode_reward, qa_pairs, reward_history, train):
+    if train:
+        if cfg.baseline:
+            logger.log(
+                {
+                    "train/eps_reward": sum(episode_reward),
+                    "train/loss": episode_loss,
+                    "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
+                }
+            )
+        else:
+            logger.log(
+                {
+                    "train/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
+                    "train/eps_reward": sum(episode_reward),
+                    "train/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
+                    "train/loss": episode_loss,
+                    "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
+                }
+            )
+    else:
+        if cfg.baseline:
+            logger.log(
+                {
+                    "test/eps_reward": sum(episode_reward),
+                    "test/loss": episode_loss,
+                    "test/avg_reward_episodes": sum(reward_history) / len(reward_history)
+                }
+            )
+        else:
+            logger.log(
+                {
+                    "test/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
+                    "test/eps_reward": sum(episode_reward),
+                    "test/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
+                    "test/loss": episode_loss,
+                    "test/avg_reward_episodes": sum(reward_history) / len(reward_history)
+                }
+            )

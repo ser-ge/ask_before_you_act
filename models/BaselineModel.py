@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import torch
-
 import torch.nn as nn
 
 device = 'cpu'
@@ -28,16 +27,16 @@ class BaselineModel(nn.Module):
         self.value_head = nn.Linear(self.policy_input_dim, 1)
         self.activation = nn.ReLU()
 
-    def policy(self, obs,hist_mem):
+    def policy(self, obs, hist_mem):
         x = self.encode_obs(obs)
-        x = torch.cat((x,hist_mem),1)
+        x = torch.cat((x, hist_mem), 1)
         # x = torch.Tensor(encoded_obs)
         action_policy = self.policy_head(x)
         return action_policy
 
-    def value(self, obs,hist_mem):
+    def value(self, obs, hist_mem):
         x = self.encode_obs(obs)
-        x = torch.cat((x,hist_mem),1)
+        x = torch.cat((x, hist_mem), 1)
         # x = torch.cat((encoded_obs), 1)
         state_value = self.value_head(x)
         return state_value
@@ -48,14 +47,11 @@ class BaselineModel(nn.Module):
         return obs_encoding
 
 class BaselineModelMem(BaselineModel):
-
     def __init__(self, action_dim=7,mem_hidden_dim=64):
         super().__init__(action_dim, mem_hidden_dim)
         self.memory_rnn = nn.LSTMCell(self.encoded_obs_dim+self.mem_hidden_dim, self.mem_hidden_dim)
-
 
     def remember(self, obs, action, memory):
         encoded_obs = self.encode_obs(obs)
         x = torch.cat((encoded_obs, action), 1)
         return self.memory_rnn(x, memory)
-

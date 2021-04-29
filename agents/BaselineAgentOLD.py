@@ -31,7 +31,6 @@ class PPOAgent:
     def act(self, observation):
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
-
         logits = self.model(observation, flag="policy")
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)

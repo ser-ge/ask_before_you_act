@@ -10,16 +10,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from agents.BaselineAgent import BaselineAgent, BaselineAgentMem
-from agents.Agent import Agent, AgentMem
+from agents.BaselineAgentRM import BaselineAgent, BaselineAgentExpMem
+from agents.AgentRM import Agent, AgentMem, AgentExpMem
 
-from models.BaselineModel import BaselineModel, BaselineModelMem
-from models.brain_net import BrainNet, BrainNetMem
+from models.BaselineModelRM import BaselineModel, BaselineModelExpMem
+from models.brain_netRM import BrainNet, BrainNetMem, BrainNetExpMem
 
 from oracle.oracle import OracleWrapper
-# from utils.TrainerTester import TrainerTester
-from utils.Trainer import traintest
-from utils.BaselineTrain import GAEtrain
+from utils.TrainerRM import train_test
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -47,8 +45,10 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 1
     entropy_qa_param: float = 0.05
-    N_eps: float = 500
-    train_log_interval: float = 25
+    train_episodes: float = 500
+    test_episodes: float = 10
+    train_log_interval: float = 50
+    test_log_interval: float = 1
     # env_name: str = "MiniGrid-Empty-8x8-v0"
     env_name: str = "MiniGrid-Empty-5x5-v0"
     ans_random: float = 0
@@ -58,7 +58,8 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
-    baseline: bool = True
+    exp_mem: bool = True
+    baseline: bool = False
 
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -68,6 +69,8 @@ device = "cpu"
 
 def run_experiment(USE_WANDB, **kwargs):
     cfg = Config(**kwargs)
+    dataset = Dataset(cfg)
+    question_rnn = QuestionRNN(dataset, cfg)
 
     if USE_WANDB:
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
@@ -79,8 +82,6 @@ def run_experiment(USE_WANDB, **kwargs):
 
         logger = Logger()
 
-    dataset = Dataset(cfg)
-    question_rnn = QuestionRNN(dataset, cfg)
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
 
@@ -97,32 +98,14 @@ def run_experiment(USE_WANDB, **kwargs):
                         ans_random=cfg.ans_random)
 
     # Agent
-    if cfg.baseline:
-        model = BaselineModel()
-        agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                         cfg.value_param, cfg.entropy_act_param)
+    agent = set_up_agent(cfg, question_rnn)
 
-        _, train_reward = traintest(env, agent, logger, n_episodes=cfg.N_eps,
-                                   log_interval=cfg.train_log_interval, verbose=True)
+    # Train
+    train_reward = train_test(env, agent, cfg, logger, n_episodes=cfg.train_episodes,
+                              log_interval=cfg.train_log_interval, train=True, verbose=True)
 
-    elif cfg.use_mem:
-        model = BrainNetMem(question_rnn)
-        agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                      cfg.value_param, cfg.entropy_act_param,
-                      cfg.policy_qa_param, cfg.entropy_qa_param)
-
-        _, train_reward = traintest(env, agent, logger, memory=cfg.use_mem, train = cfg.train, n_episodes=cfg.N_eps,
-                                log_interval=cfg.train_log_interval, verbose=True)
-
-
-    else:
-        model = BrainNet(question_rnn)
-        agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                      cfg.value_param, cfg.entropy_act_param,
-                      cfg.policy_qa_param, cfg.entropy_qa_param)
-
-        _, train_reward = traintest(env, agent, logger, memory=cfg.use_mem, train = cfg.train, n_episodes=cfg.N_eps,
-                                log_interval=cfg.train_log_interval, verbose=True)
+    test_reward = train_test(env, agent, cfg, logger, n_episodes=cfg.test_episodes,
+                              log_interval=cfg.test_log_interval, train=True, verbose=True)
 
 
     if USE_WANDB:
@@ -153,13 +136,47 @@ def plot_experiment(averaged_data, total_runs, window=25):
     # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
 
 
+def set_up_agent(cfg, question_rnn):
+    if cfg.baseline:
+        if cfg.use_mem:
+            model = BaselineModelExpMem()
+            agent = BaselineAgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                             cfg.value_param, cfg.entropy_act_param)
+
+        else:
+            model = BaselineModel()
+            agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                                        cfg.value_param, cfg.entropy_act_param)
+
+    else:
+        if cfg.use_mem and cfg.exp_mem:
+            model = BrainNetExpMem(question_rnn)
+            agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                          cfg.value_param, cfg.entropy_act_param,
+                          cfg.policy_qa_param, cfg.entropy_qa_param)
+
+        elif cfg.use_mem and not cfg.exp_mem:
+            model = BrainNetMem(question_rnn)
+            agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                                cfg.value_param, cfg.entropy_act_param,
+                                cfg.policy_qa_param, cfg.entropy_qa_param)
+
+        else:
+            model = BrainNet(question_rnn)
+            agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                          cfg.value_param, cfg.entropy_act_param,
+                          cfg.policy_qa_param, cfg.entropy_qa_param)
+    return agent
+
+
+
 if __name__ == "__main__":
     # Store data for each run
     cfg = Config()
     signature = str(random.randint(10000, 90000))
     # runs_reward = []
     total_runs = 5
-    data_to_be_averaged = np.zeros([cfg.N_eps,total_runs])
+    data_to_be_averaged = np.zeros([cfg.train_episodes, total_runs])
     epsilon_range = np.linspace(0, 1, 5)
     averaged_data = pd.DataFrame(columns=[i for i in epsilon_range])
     column_number = 0
@@ -183,5 +200,3 @@ if __name__ == "__main__":
     print(averaged_data)
     plot_experiment(averaged_data, total_runs)
     # np.save("./data/runs_reward" + str(total_runs) + signature + ".npy", averaged_data)
-
-

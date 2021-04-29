@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
 
-from utils.Trainer import Transition
+from utils.TrainerRM import Transition
 
 
 device = "cpu"
@@ -18,7 +18,7 @@ class Agent:
 
         self.gamma = gamma
         self.lmbda = lmbda
-        self.baseline = False
+
         self.clip_param = clip_param
         self.entropy_act_param = entropy_act_param
         self.value_param = value_param
@@ -40,11 +40,11 @@ class Agent:
         output = ' '.join(tokens)
         return output, hidden_q, log_probs_qa, entropy_qa
 
-    def act(self, observation, ans, hidden_q, hidden_hist_mem):
+    def act(self, observation, ans, hidden_q):
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
-        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem)
+        logits = self.model.policy(observation, ans, hidden_q)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
@@ -52,16 +52,16 @@ class Agent:
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
-    def update(self,train=True):
+    def update(self):
         state, answer, hidden_q, action, reward, reward_qa, next_state, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
         cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
 
         # Get current V
-        V_pred = self.model.value(state, answer, hidden_q,hidden_hist_mem).squeeze()
+        V_pred = self.model.value(state, answer, hidden_q).squeeze()
 
         # Get next V
-        next_V_pred = self.model.value(next_state, answer, hidden_q,hidden_hist_mem).squeeze()
+        next_V_pred = self.model.value(next_state, answer, hidden_q).squeeze()
 
         # Compute TD error
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
@@ -71,7 +71,7 @@ class Agent:
         advantage = self.gae(td_error)
 
         # Clipped PPO Policy Loss
-        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem)
+        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q)
 
         # Entropy regularizer
         L_entropy = self.entropy_act_param * entropy_act.detach().mean()
@@ -104,8 +104,8 @@ class Agent:
         advantage = torch.FloatTensor(advantage_list).to(device)
         return advantage
 
-    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist):
-        logits = self.model.policy(state, answer, hidden_q,hidden_hist)
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q):
+        logits = self.model.policy(state, answer, hidden_q)
         probs = F.softmax(logits, dim=-1)
         pi_a = probs.squeeze(1).gather(1, action.long())
         ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
@@ -153,9 +153,6 @@ class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
                  policy_qa_param=1, entropy_qa_param=0.05):
-
-        self.action_memory = True
-
         super().__init__(model, learning_rate, lmbda, gamma,
                  clip_param, value_param, entropy_act_param,
                  policy_qa_param, entropy_qa_param)
@@ -169,3 +166,88 @@ class AgentMem(Agent):
         return memory
 
 
+class AgentExpMem(Agent):
+    def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
+                 clip_param=0.2, value_param=1, entropy_act_param=0.01,
+                 policy_qa_param=1, entropy_qa_param=0.05):
+
+        self.action_memory = True
+
+        super().__init__(model, learning_rate, lmbda, gamma,
+                 clip_param, value_param, entropy_act_param,
+                 policy_qa_param, entropy_qa_param)
+
+
+    def act(self, observation, ans, hidden_q, hidden_hist_mem):
+        # Calculate policy
+        observation = torch.FloatTensor(observation).to(device)
+        ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
+        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem)
+        action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
+        dist = distributions.Categorical(action_prob)
+        action = dist.sample()
+        probs = action_prob[action]  # Policy log prob
+        entropy = dist.entropy()  # Entropy regularizer
+        return action.detach().item(), probs, entropy
+
+    def update(self): # TODO - fix batch
+        state, answer, hidden_q, action, reward, reward_qa, next_state, \
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
+        cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
+
+        # Get current V
+        V_pred = self.model.value(state, answer, hidden_q,hidden_hist_mem).squeeze()
+
+        # Get next V
+        next_V_pred = self.model.value(next_state, answer, hidden_q,hidden_hist_mem).squeeze()
+
+        # Compute TD error
+        target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
+        td_error = (target - V_pred).detach()
+
+        # Generalised Advantage Estimation
+        advantage = self.gae(td_error)
+
+        # Clipped PPO Policy Loss
+        # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
+        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem)
+
+        # Entropy regularizer
+        L_entropy = self.entropy_act_param * entropy_act.detach().mean()
+
+        # Value function loss
+        L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
+
+        # Q&A Loss
+        L_policy_qa = (self.policy_qa_param * reward_qa + advantage.squeeze()) * log_prob_qa
+        L_entropy_qa = self.entropy_qa_param * entropy_qa
+        L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
+
+        # Total loss
+        total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
+
+        # Update paramss
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
+
+        return total_loss.item()
+
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist):
+        logits = self.model.policy(state, answer, hidden_q,hidden_hist)
+        # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
+        probs = F.softmax(logits, dim=-1)
+        pi_a = probs.squeeze(1).gather(1, action.long())
+        ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
+        surrogate1 = ratio * advantage
+        surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
+        L_clip = torch.min(surrogate1, surrogate2).mean()
+        return L_clip
+
+    def remember(self, state, action, answer, hidden_q, hist_mem):
+        action_one_hot = torch.zeros((1, 7)).to(device)
+        action_one_hot[0, action] = 1
+        obs = torch.FloatTensor(state).to(device)
+        answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
+        memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
+        return memory
