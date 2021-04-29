@@ -42,24 +42,25 @@ class Config:
     drop_out_prob: float = 0
     gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
-    lr: float = 0.001
+    lr: float = 0.0005
     gamma: float = 0.99
     lmbda: float = 0.95
-    clip: float = 0.1
+    clip: float = 0.3
     entropy_act_param: float = 0.1
     value_param: float = 1
-    policy_qa_param: float = 1
+    policy_qa_param: float = 0.25
+    advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 3000
+    train_episodes: float = 5000
     test_episodes: float = 10
-    train_log_interval: float = 50
+    train_log_interval: float = 5
     test_log_interval: float = 1
     # env_name: str = "MiniGrid-Empty-8x8-v0"
-    env_name: str = "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
-    defined_q_reward : float = 0.2
+    defined_q_reward: float = 0.2
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
@@ -73,7 +74,7 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = True
+USE_WANDB = False
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
@@ -181,15 +182,12 @@ sweep_config_8_8 = {
 } }
 
 
-
 class Logger:
     def log(self, *args):
         pass
 
 
-
 def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH):
-
     """
     pickle.load(open('data/run_results_Thu Apr 29 13:14:39 2021.p', 'rb'))
     """
@@ -220,12 +218,7 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
         print(f"Run results saved to {save_path}")
         return experiments
 
-
-
-
 def run_experiment(cfg=default_config):
-
-
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
@@ -283,7 +276,7 @@ def plot_experiment(averaged_data, total_runs, window=25):
     axs[0].set_ylabel(f"{window} ep moving avg of mean agent reward")
     axs[0].legend(averaged_data.columns)
 
-    axs[1].plot(advantage,color='blue')
+    axs[1].plot(advantage, color='blue')
     axs[1].set_title("Advantage of no random over random Agent")
     axs[1].set_xlabel("Episodes")
     plt.show()
@@ -297,6 +290,7 @@ def set_up_agent(cfg, question_rnn):
             agent = BaselineAgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                              cfg.value_param, cfg.entropy_act_param)
 
+
         else:
             model = BaselineModel()
             agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
@@ -306,20 +300,23 @@ def set_up_agent(cfg, question_rnn):
         if cfg.use_mem and cfg.exp_mem:
             model = BrainNetExpMem(question_rnn)
             agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                          cfg.value_param, cfg.entropy_act_param,
-                          cfg.policy_qa_param, cfg.entropy_qa_param)
+                                cfg.value_param, cfg.entropy_act_param,
+                                cfg.policy_qa_param, cfg.advantage_qa_param,
+                                cfg.entropy_qa_param)
 
         elif cfg.use_mem and not cfg.exp_mem:
             model = BrainNetMem(question_rnn)
             agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                                cfg.value_param, cfg.entropy_act_param,
-                                cfg.policy_qa_param, cfg.entropy_qa_param)
+                             cfg.value_param, cfg.entropy_act_param,
+                             cfg.policy_qa_param, cfg.advantage_qa_param,
+                             cfg.entropy_qa_param)
 
         else:
             model = BrainNet(question_rnn)
             agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                           cfg.value_param, cfg.entropy_act_param,
-                          cfg.policy_qa_param, cfg.entropy_qa_param)
+                          cfg.policy_qa_param, cfg.advantage_qa_param,
+                          cfg.entropy_qa_param)
     return agent
 
 
@@ -351,4 +348,5 @@ def gen_configs(sweep_config):
 
 
 if __name__ == "__main__":
-    run_experiments()
+    run_experiment()
+    # run_experiments()

@@ -102,7 +102,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         if done:
             # Update
             if train:
-                episode_loss = agent.update()
+                episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
 
             # Reset episode
@@ -111,9 +111,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             step = 0
 
             reward_history.append(sum(episode_reward))
-
-            log_cases(logger, cfg, episode_loss, episode_qa_reward,
+            log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
                       episode_reward, qa_pairs, reward_history, train)
+
 
             episode_reward = []
             episode_qa_reward = []
@@ -130,13 +130,18 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
     return reward_history
 
 
-def log_cases(logger, cfg, episode_loss, episode_qa_reward, episode_reward, qa_pairs, reward_history, train):
+def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
+              episode_reward, qa_pairs, reward_history, train):
     if train:
+        L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa = losses_tuple
         if cfg.baseline:
             logger.log(
                 {
                     "train/eps_reward": sum(episode_reward),
-                    "train/loss": episode_loss,
+                    "train/total_loss": episode_loss,
+                    "train/L_clip": L_clip,
+                    "train/L_value": L_value,
+                    "train/L_entropy": L_entropy,
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
@@ -147,6 +152,11 @@ def log_cases(logger, cfg, episode_loss, episode_qa_reward, episode_reward, qa_p
                     "train/eps_reward": sum(episode_reward),
                     "train/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
                     "train/loss": episode_loss,
+                    "train/L_clip": L_clip,
+                    "train/L_value": L_value,
+                    "train/L_entropy": L_entropy,
+                    "train/L_policy_qa": L_policy_qa,
+                    "train/L_entropy_qa": L_entropy_qa,
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
@@ -155,7 +165,6 @@ def log_cases(logger, cfg, episode_loss, episode_qa_reward, episode_reward, qa_p
             logger.log(
                 {
                     "test/eps_reward": sum(episode_reward),
-                    "test/loss": episode_loss,
                     "test/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
@@ -165,7 +174,6 @@ def log_cases(logger, cfg, episode_loss, episode_qa_reward, episode_reward, qa_p
                     "test/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
                     "test/eps_reward": sum(episode_reward),
                     "test/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
-                    "test/loss": episode_loss,
                     "test/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )

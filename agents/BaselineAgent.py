@@ -75,7 +75,7 @@ class BaselineAgent:
         total_loss.backward()
         self.optimizer.step()
 
-        return total_loss.item()
+        return total_loss.item(), (L_clip, L_value, L_entropy, None, None)
 
     def gae(self, td_error):
         advantage_list = []
@@ -184,7 +184,7 @@ class BaselineAgentExpMem(BaselineAgent):
         total_loss.backward()
         self.optimizer.step()
 
-        return total_loss.item()
+        return total_loss.item(), (L_clip, L_value, L_entropy, None, None)
 
     def clip_loss(self, action, advantage, log_prob_act, state, hidden_hist):
         # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
