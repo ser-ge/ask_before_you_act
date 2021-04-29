@@ -28,8 +28,9 @@ class BaselineAgent:
         self.done = True
         self.data = []
 
-    def act(self, observation):
+    def act(self, observation,hist_mem):
         # Calculate policy
+        _ = hist_mem # don't do anything with this, just here to make Trainer function look nicer
         observation = torch.FloatTensor(observation).to(device)
         logits = self.model.policy(observation)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)

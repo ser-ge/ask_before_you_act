@@ -57,8 +57,8 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = True
-    exp_mem: bool = True
+    use_mem: bool = False
+    exp_mem: bool = False
     baseline: bool = True
 
 
