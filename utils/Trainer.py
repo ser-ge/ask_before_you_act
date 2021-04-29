@@ -49,12 +49,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         # Ask before you act
         if cfg.baseline:
             action, log_prob_act, entropy_act = agent.act(state, hist_mem[0])
-            answer = 1
-            reward_qa = 0
-            entropy_qa = 1
+            answer, reward_qa, entropy_qa = (1,0,1)
             log_prob_qa = 6*[torch.Tensor([1])]
             hidden_q = torch.ones(128)
-            # question = 'wherefore art thou Romeo?'
 
         else:
             # Ask
