@@ -228,6 +228,7 @@ def run_experiment(cfg=default_config):
     if USE_WANDB:
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
         logger = wandb
+        cfg = wandb.config
     else:
 
         logger = Logger()
