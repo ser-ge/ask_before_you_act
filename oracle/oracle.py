@@ -36,7 +36,7 @@ class Oracle:
         #     raise  ValueError('missing tokens')
 
         if grid is None:
-            grid = self.env.grid.encode()
+            grid = np.rot90(np.fliplr(self.env.grid.encode()))
 
         if isinstance(premise, DirectionPremise):
             return self.answer_direction(premise, grid)
@@ -130,15 +130,14 @@ class OracleWrapper(gym.core.Wrapper):
 
     def answer(self, question):
 
-        full_grid = self.env.grid.encode()
-
+        full_grid = np.rot90(np.fliplr(self.env.grid.encode()))
         try:
 
             if np.random.rand() < self.ans_random:  # TODO - still penalize if syntax is incorrect?
                 # if a draw from a uniform distribution returns a value less than the epsilon you
                 # pass, then, return a random answer
                 _ = self.oracle.answer(question, full_grid)
-                ans = random.choice(list(Answer))
+                ans = random.choice([Answer(1), Answer(2)])
 
             else:
                 ans = self.oracle.answer(question, full_grid)
