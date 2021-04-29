@@ -64,8 +64,8 @@ class Config:
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
-    use_mem: bool = True
-    exp_mem: bool = True
+    use_mem: bool = False
+    exp_mem: bool = False
     baseline: bool = False
 
 default_config = Config()
@@ -74,7 +74,7 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = False
+USE_WANDB = True
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
