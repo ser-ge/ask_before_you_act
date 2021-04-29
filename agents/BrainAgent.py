@@ -14,7 +14,7 @@ device = "cpu"
 class Agent:
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
-                 policy_qa_param=1, entropy_qa_param=0.05):
+                 policy_qa_param=1, advantage_qa_param=0.5, entropy_qa_param=0.05):
 
         self.gamma = gamma
         self.lmbda = lmbda
@@ -23,6 +23,7 @@ class Agent:
         self.entropy_act_param = entropy_act_param
         self.value_param = value_param
         self.policy_qa_param = policy_qa_param
+        self.advantage_qa_param = advantage_qa_param
         self.entropy_qa_param = entropy_qa_param
 
         self.T = 1
@@ -80,7 +81,7 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = (self.policy_qa_param * reward_qa + advantage.squeeze()) * log_prob_qa
+        L_policy_qa = (self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa
         L_entropy_qa = self.entropy_qa_param * entropy_qa
         L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
 
@@ -92,7 +93,7 @@ class Agent:
         total_loss.backward()
         self.optimizer.step()
 
-        return total_loss.item()
+        return total_loss.item(), (L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa)
 
     def gae(self, td_error):
         advantage_list = []
@@ -152,10 +153,10 @@ class Agent:
 class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
-                 policy_qa_param=1, entropy_qa_param=0.05):
+                 policy_qa_param=1, advantage_qa_param=0.5, entropy_qa_param=0.05):
         super().__init__(model, learning_rate, lmbda, gamma,
                  clip_param, value_param, entropy_act_param,
-                 policy_qa_param, entropy_qa_param)
+                 policy_qa_param, advantage_qa_param, entropy_qa_param)
 
     def remember(self, state, action, answer, hidden_q, hist_mem):
         action_one_hot = torch.zeros((1, 7)).to(device)
@@ -201,14 +202,12 @@ class AgentMem(Agent):
 class AgentExpMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
-                 policy_qa_param=1, entropy_qa_param=0.05):
-
-        self.action_memory = True
-
+                 policy_qa_param=1, advantage_qa_param=0.5, entropy_qa_param=0.05):
         super().__init__(model, learning_rate, lmbda, gamma,
                  clip_param, value_param, entropy_act_param,
-                 policy_qa_param, entropy_qa_param)
+                 policy_qa_param, advantage_qa_param, entropy_qa_param)
 
+        self.action_memory = True
 
     def act(self, observation, ans, hidden_q, hidden_hist_mem):
         # Calculate policy
@@ -251,7 +250,7 @@ class AgentExpMem(Agent):
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = (self.policy_qa_param * reward_qa + advantage.squeeze()) * log_prob_qa
+        L_policy_qa = (self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa
         L_entropy_qa = self.entropy_qa_param * entropy_qa
         L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
 
@@ -263,7 +262,7 @@ class AgentExpMem(Agent):
         total_loss.backward()
         self.optimizer.step()
 
-        return total_loss.item()
+        return total_loss.item(), (L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa)
 
     def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist):
         logits = self.model.policy(state, answer, hidden_q,hidden_hist)
