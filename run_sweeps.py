@@ -74,7 +74,7 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = False
+USE_WANDB = True
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
