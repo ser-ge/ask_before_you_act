@@ -112,6 +112,17 @@ class BrainNetMem(BrainNet):
         x = torch.cat((encoded_obs, action, answer, hidden_q), 1)
         return self.memory_rnn(x, memory)
 
+    def policy(self, obs, answer, hidden_q, hidden_hist_mem):
+        """
+        hidden_q : last hidden state
+        """
+        _ = hidden_hist_mem # not doing anything with this
+        # just taking it in here to make Trainer read cleaner
+        encoded_obs = self.encode_obs(obs)
+        x = torch.cat((encoded_obs, answer, hidden_q), 1)
+        action_policy = self.policy_head(x)
+        return action_policy
+
 
 class BrainNetExpMem(BrainNetMem):
     def __init__(self, question_rnn, action_dim=7):
