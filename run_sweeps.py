@@ -55,7 +55,7 @@ class Config:
     train_log_interval: float = 50
     test_log_interval: float = 1
     # env_name: str = "MiniGrid-Empty-8x8-v0"
-    env_name: str = "MiniGrid-Empty-5x5-v0"
+    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
@@ -65,7 +65,7 @@ class Config:
     seed: int = 1
     use_mem: bool = True
     exp_mem: bool = True
-    baseline: bool = False
+    baseline: bool = True
 
 default_config = Config()
 
@@ -73,7 +73,7 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = True
+USE_WANDB = False
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
@@ -181,15 +181,12 @@ sweep_config_8_8 = {
 } }
 
 
-
 class Logger:
     def log(self, *args):
         pass
 
 
-
 def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH):
-
     """
     pickle.load(open('data/run_results_Thu Apr 29 13:14:39 2021.p', 'rb'))
     """
@@ -220,12 +217,7 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
         print(f"Run results saved to {save_path}")
         return experiments
 
-
-
-
 def run_experiment(cfg=default_config):
-
-
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
@@ -283,7 +275,7 @@ def plot_experiment(averaged_data, total_runs, window=25):
     axs[0].set_ylabel(f"{window} ep moving avg of mean agent reward")
     axs[0].legend(averaged_data.columns)
 
-    axs[1].plot(advantage,color='blue')
+    axs[1].plot(advantage, color='blue')
     axs[1].set_title("Advantage of no random over random Agent")
     axs[1].set_xlabel("Episodes")
     plt.show()
@@ -351,4 +343,5 @@ def gen_configs(sweep_config):
 
 
 if __name__ == "__main__":
-    run_experiments()
+    run_experiment()
+    # run_experiments()

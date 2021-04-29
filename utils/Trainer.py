@@ -109,9 +109,12 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             step = 0
 
             reward_history.append(sum(episode_reward))
-
-            log_cases(logger, cfg, episode_loss, episode_qa_reward,
-                      episode_reward, qa_pairs, reward_history, train)
+            if train:
+                log_cases(logger, cfg, episode_loss, episode_qa_reward,
+                          episode_reward, qa_pairs, reward_history, train)
+            else:
+                log_cases(logger, cfg, None, episode_qa_reward,
+                          episode_reward, qa_pairs, reward_history, train)
 
             episode_reward = []
             episode_qa_reward = []
