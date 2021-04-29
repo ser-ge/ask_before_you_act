@@ -62,6 +62,8 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             episode_qa_reward.append(reward_qa)
             qa_pairs.append([question, str(answer), reward_qa])  # Storing
 
+            # if "green goal" in question and reward_qa == 0.2:
+            #     breakpoint()
             # Answer
             answer = answer.decode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
