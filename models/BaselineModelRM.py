@@ -49,10 +49,11 @@ class BaselineModelExpMem(BaselineModel):
         self.mem_hidden_dim = mem_hidden_dim
         self.policy_input_dim = self.cnn_encoding_dim + self.mem_hidden_dim
 
-        self.memory_rnn = nn.LSTMCell(self.cnn_encoding_dim + 7,
+        self.memory_rnn = nn.LSTMCell(self.cnn_encoding_dim + action_dim,
                                       self.mem_hidden_dim)
 
         self.policy_head = nn.Linear(self.policy_input_dim, action_dim)
+        self.value_head = nn.Linear(self.policy_input_dim, 1)
 
     def policy(self, obs, hist_mem):
         x = self.encode_obs(obs)

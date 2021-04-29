@@ -59,7 +59,7 @@ class Config:
     seed: int = 1
     use_mem: bool = True
     exp_mem: bool = True
-    baseline: bool = False
+    baseline: bool = True
 
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

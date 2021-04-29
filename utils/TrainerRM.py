@@ -1,6 +1,6 @@
 import numpy as np
 from collections import namedtuple
-
+from oracle.oracle import Answer
 import torch
 import wandb
 
@@ -49,12 +49,18 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         # Ask before you act
         if cfg.baseline:
             action, log_prob_act, entropy_act = agent.act(state, hist_mem[0])
-            answer, reward_qa, question, hidden_q, log_prob_qa, entropy_qa = 6*[torch.Tensor([1]).unsqueeze(0)]
+            answer = 1
+            reward_qa = 0
+            entropy_qa = 1
+            log_prob_qa = 6*[torch.Tensor([1])]
+            hidden_q = torch.ones(128)
+            # question = 'wherefore art thou Romeo?'
 
         else:
             # Ask
             question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
+
 
             # Logging
             episode_qa_reward.append(reward_qa)

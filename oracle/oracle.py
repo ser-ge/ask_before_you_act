@@ -97,6 +97,7 @@ class Answer(Enum):
     FALSE = 2
     UNDEFINED = 3
     BAD_SYNTAX = 4
+    PLACEHOLDER = 0
 
     def decode(self):
         return {
