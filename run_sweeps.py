@@ -5,7 +5,6 @@ import gym
 import gym_minigrid
 import torch
 import numpy as np
-
 import time
 from itertools import product
 from tqdm import tqdm
@@ -42,10 +41,10 @@ class Config:
     drop_out_prob: float = 0
     gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
-    lr: float = 0.0005
+    lr: float = 0.001
     gamma: float = 0.99
     lmbda: float = 0.95
-    clip: float = 0.3
+    clip: float = 0.2
     entropy_act_param: float = 0.1
     value_param: float = 1
     policy_qa_param: float = 0.25
@@ -55,17 +54,17 @@ class Config:
     test_episodes: float = 10
     train_log_interval: float = 5
     test_log_interval: float = 1
-    # env_name: str = "MiniGrid-Empty-8x8-v0"
-    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    env_name: str = "MiniGrid-Empty-8x8-v0"
+    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
     defined_q_reward: float = 0.2
     pre_trained_lstm: bool = True
-    use_seed: bool = False
+    use_seed: bool = True
     seed: int = 1
-    use_mem: bool = False
-    exp_mem: bool = False
+    use_mem: bool = True
+    exp_mem: bool = True
     baseline: bool = False
 
 default_config = Config()
@@ -74,7 +73,7 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = True
+USE_WANDB = False
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
@@ -136,11 +135,14 @@ sweep_config = {
         "ans_random" : {
             'value' :  0
             },
+        "gamma" : {
+            'value' :  0.9
+            },
     }
 }
 
 
-sweep_config_8_8 = {
+sweep_config = {
     "name" : "8 by 8 sweeep true false",
     "method": "bayes",
     "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
@@ -149,36 +151,36 @@ sweep_config_8_8 = {
     "lr": {
         "value": 0.001
     },
-    "clip": {
-        "value": 0.11382609211422028
-    },
-    "lmbda": {
-        "value": 0.95
-    },
-    "env_name": {
-        "value": "MiniGrid-Empty-8x8-v0"
-    },
-    "ans_random": {
-        "values": [0, 0.5, 1]
-    },
-    "value_param": {
-        "value": 0.8210391931653159
-    },
-    "policy_qa_param": {
-        "value": 0.507744927219129
-    },
-    "entropy_qa_param": {
-        "value": 0.28267454781905166
-    },
-    "entropy_act_param": {
-        "value": 0.08081028521575984
-    },
-    "syntax_error_reward": {
-        "value": -0.2
-    },
-    "undefined_error_reward": {
-        "value": -0.1
-    }
+    # "clip": {
+    #     "value": 0.11382609211422028
+    # },
+    # "lmbda": {
+    #     "value": 0.95
+    # },
+    # "env_name": {
+    #     "value": "MiniGrid-Empty-8x8-v0"
+    # },
+    # "ans_random": {
+    #     "value": 0
+    # },
+    # "value_param": {
+    #     "value": 1
+    # },
+    # "policy_qa_param": {
+    #     "value": 0.25
+    # },
+    # "entropy_qa_param": {
+    #     "value": 0.28267454781905166
+    # },
+    # "entropy_act_param": {
+    #     "value": 0.08081028521575984
+    # },
+    # "syntax_error_reward": {
+    #     "value": -0.2
+    # },
+    # "undefined_error_reward": {
+    #     "value": -0.1
+    # }
 } }
 
 
@@ -319,7 +321,6 @@ def set_up_agent(cfg, question_rnn):
                           cfg.entropy_qa_param)
     return agent
 
-
 def gen_configs(sweep_config):
 
     params = sweep_config['parameters']
@@ -345,7 +346,6 @@ def gen_configs(sweep_config):
         configs.append(cfg)
 
     return configs
-
 
 if __name__ == "__main__":
     run_experiment()
