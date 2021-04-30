@@ -81,7 +81,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
         # Store
         t = Transition(state, answer, hidden_q, action, reward, reward_qa,
-                       log_prob_act.item(),log_prob_qa, entropy_act.item(), entropy_qa, done,
+                       log_prob_act.item(), log_prob_qa, entropy_act.item(), entropy_qa, done,
                        hist_mem[0], hist_mem[1])
 
         agent.store(t)

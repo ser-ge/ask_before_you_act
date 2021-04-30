@@ -56,13 +56,11 @@ class Agent:
         return action.detach().item(), probs, entropy
 
     def update(self):
-
-
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
-
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, \
+        done, hidden_hist_mem, cell_hist_mem = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
 
