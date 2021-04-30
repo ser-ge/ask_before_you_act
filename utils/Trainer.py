@@ -161,7 +161,6 @@ def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_rewar
                 }
             )
             if episode % cfg.train_log_interval == 0:
-                print('train_log_interval',episode)
                 logger.log({"train/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"])})
 
         if cfg.baseline:
