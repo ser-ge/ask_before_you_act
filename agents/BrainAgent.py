@@ -41,11 +41,13 @@ class Agent:
         output = ' '.join(tokens)
         return output, hidden_q, log_probs_qa, entropy_qa
 
-    def act(self, observation, ans, hidden_q):
+    def act(self, observation, ans, hidden_q, hidden_hist):
         # Calculate policy
+        _ = hidden_hist # does nothing, just accepts
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
         logits = self.model.policy(observation, ans, hidden_q)
+        # does nothing, just accepts
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
