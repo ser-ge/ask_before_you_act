@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 from collections import namedtuple
 from oracle.oracle import Answer
@@ -41,6 +43,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
     # Initialize random memory
     hist_mem = agent.init_memory()
+    last_time = time.time()
 
     while episode < n_episodes:
         # Ask before you act
@@ -106,7 +109,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             step = 0
 
             reward_history.append(sum(episode_reward))
-            log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
+            log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
                       episode_reward, qa_pairs, reward_history, train)
 
 
@@ -117,15 +120,18 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             episode += 1
 
             if episode % log_interval == 0:
+                current_time = time.time()
                 if verbose:
-                    avg_R = np.sum(reward_history[-log_interval:]) / log_interval
-                    print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}")
+                    avg_R = np.mean(reward_history[-log_interval:])
+                    print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}, "
+                          f"EPS: {log_interval / (current_time - last_time):.1f} ")
                 avg_syntax_r = 0
+                last_time = current_time
 
     return reward_history
 
 
-def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
+def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
               episode_reward, qa_pairs, reward_history, train):
     if train:
         L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa = losses_tuple
@@ -143,7 +149,6 @@ def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
         else:
             logger.log(
                 {
-                    "train/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
                     "train/eps_reward": sum(episode_reward),
                     "train/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
                     "train/loss": episode_loss,
@@ -155,7 +160,10 @@ def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
-    else:
+            if episode % cfg.train_log_interval == 0:
+                print('train_log_interval',episode)
+                logger.log({"train/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"])})
+
         if cfg.baseline:
             logger.log(
                 {
@@ -166,7 +174,7 @@ def log_cases(logger, cfg, episode_loss, losses_tuple, episode_qa_reward,
         else:
             logger.log(
                 {
-                    "test/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
+                    # "test/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"]),
                     "test/eps_reward": sum(episode_reward),
                     "test/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
                     "test/avg_reward_episodes": sum(reward_history) / len(reward_history)
