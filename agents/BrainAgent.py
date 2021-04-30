@@ -89,9 +89,9 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = (self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa
-        L_entropy_qa = self.entropy_qa_param * entropy_qa
-        L_qa = (L_policy_qa + L_entropy_qa).mean().to(device)
+        L_policy_qa = ((self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
+        L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
         # Total loss
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
