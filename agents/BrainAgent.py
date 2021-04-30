@@ -56,15 +56,21 @@ class Agent:
         return action.detach().item(), probs, entropy
 
     def update(self):
-        state, answer, hidden_q, action, reward, reward_qa, next_state, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
-        cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
+
+
+        current_trans, next_trans = self.get_batch()
+
+        state, answer, hidden_q, action, reward, reward_qa, \
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+
+
+        next_state, next_answer, next_hidden_q, *_ = next_trans
 
         # Get current V
         V_pred = self.model.value(state, answer, hidden_q).squeeze()
 
         # Get next V
-        next_V_pred = self.model.value(next_state, answer, hidden_q).squeeze()
+        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q).squeeze()
 
         # Compute TD error
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
@@ -125,15 +131,27 @@ class Agent:
         self.data.append(transition)
 
     def get_batch(self):
-        trans = Transition(*zip(*self.data))
 
+        current_trans = Transition(*zip(*self.data))
+        current_trans = self.transition_to_tensors(current_trans)
+
+        next_data = self.data[1:]
+        next_trans = Transition(*zip(*next_data))
+        next_trans = self.transition_to_tensors(next_trans)
+        next_trans = Transition(*list(map(expand_zeros, next_trans)))
+
+        self.data = []
+        return current_trans, next_trans
+
+
+    def transition_to_tensors(self, trans):
         state = torch.FloatTensor(trans.state).to(device)
         answer = torch.FloatTensor(trans.answer).to(device)
         hidden_q = torch.cat(trans.hidden_q)
         action = torch.FloatTensor(trans.action).to(device).view(-1, 1)
         reward = torch.FloatTensor(trans.reward).to(device).view(-1, 1)
         reward_qa = torch.FloatTensor(trans.reward_qa).to(device)
-        next_state = torch.FloatTensor(trans.next_state).to(device)
+        # next_state = torch.FloatTensor(trans.next_state).to(device)
         log_prob_act = torch.FloatTensor(trans.log_prob_act).to(device).view(-1, 1)
         log_prob_qa = torch.stack(list(map(lambda t: torch.stack(t).mean().to(device), trans.log_prob_qa)))
         entropy_act = torch.FloatTensor(trans.entropy_act).to(device).view(-1, 1)
@@ -141,15 +159,10 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
-        next_hidden_hist_mem = torch.cat(trans.next_hidden_hist_mem)
-        next_cell_hist_mem = torch.cat(trans.next_cell_hist_mem)
 
-        self.data = []
-
-        return (state, answer, hidden_q, action, reward, reward_qa,
-                next_state, log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem, next_hidden_hist_mem,
-                next_cell_hist_mem)
+        return Transition(state, answer, hidden_q, action, reward, reward_qa,
+                log_prob_act, log_prob_qa, entropy_act, entropy_qa,
+                done,  hidden_hist_mem, cell_hist_mem)
 
 
 class AgentMem(Agent):
@@ -224,15 +237,25 @@ class AgentExpMem(Agent):
         return action.detach().item(), probs, entropy
 
     def update(self): # TODO - fix batch
-        state, answer, hidden_q, action, reward, reward_qa, next_state, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, \
-        cell_hist_mem, next_hidden_hist_mem, next_cell_hist_mem = self.get_batch()
+        current_trans, next_trans = self.get_batch()
+
+        state, answer, hidden_q, action, reward, reward_qa, \
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+
+
+        next_state, next_answer, next_hidden_q, *_ = next_trans
+        *_ , next_hidden_hist_mem, cell_hist_mem  = next_trans
 
         # Get current V
-        V_pred = self.model.value(state, answer, hidden_q,hidden_hist_mem).squeeze()
 
         # Get next V
-        next_V_pred = self.model.value(next_state, answer, hidden_q,hidden_hist_mem).squeeze()
+        # Get current V
+        V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem).squeeze()
+
+        # Get next V
+        #TODO add next!
+
+        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem).squeeze()
 
         # Compute TD error
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
@@ -284,3 +307,11 @@ class AgentExpMem(Agent):
         answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
+
+
+
+def expand_zeros(tensor):
+
+    pad = torch.zeros_like(tensor[0]).unsqueeze(0)
+
+    return torch.cat((tensor, pad), 0)

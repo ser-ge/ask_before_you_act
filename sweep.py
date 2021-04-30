@@ -25,6 +25,9 @@ from dataclasses import dataclass, asdict
 import wandb
 
 
+from torch import softmax
+
+
 @dataclass
 class Config:
     epochs: int = 30
@@ -63,7 +66,7 @@ USE_WANDB = True
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-
+more stuff
 sweep_config = {
     "name" : "8 by 8 sweeep",
     "method": "bayes",

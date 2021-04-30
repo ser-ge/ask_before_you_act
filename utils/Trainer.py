@@ -13,7 +13,6 @@ Transition = namedtuple(
         "action",
         "reward",
         "reward_qa",
-        "next_state",
         "log_prob_act",
         "log_prob_qa",
         "entropy_act",
@@ -21,8 +20,6 @@ Transition = namedtuple(
         "done",
         "hidden_hist_mem",
         "cell_hist_mem",
-        "next_hidden_hist_mem",
-        "next_cell_hist_mem",
     ],
 )
 
@@ -62,8 +59,6 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             episode_qa_reward.append(reward_qa)
             qa_pairs.append([question, str(answer), reward_qa])  # Storing
 
-            # if "green goal" in question and reward_qa == 0.2:
-            #     breakpoint()
             # Answer
             answer = answer.decode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
@@ -85,9 +80,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         next_state = next_state['image']  # Discard other info
 
         # Store
-        t = Transition(state, answer, hidden_q, action, reward, reward_qa, next_state,
+        t = Transition(state, answer, hidden_q, action, reward, reward_qa,
                        log_prob_act.item(),log_prob_qa, entropy_act.item(), entropy_qa, done,
-                       hist_mem[0], hist_mem[1], next_hist_mem[0], next_hist_mem[1])
+                       hist_mem[0], hist_mem[1])
 
         agent.store(t)
 
