@@ -99,7 +99,7 @@ class Answer(Enum):
     BAD_SYNTAX = 4
     PLACEHOLDER = 0
 
-    def decode(self):
+    def encode(self):
         return {
             "TRUTH": np.array([1, 1]),
             "FALSE": np.array([0, 0]),
