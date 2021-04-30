@@ -63,7 +63,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             qa_pairs.append([question, str(answer), reward_qa])  # Storing
 
             # Answer
-            answer = answer.decode()  # For passing vector to agent
+            answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
             # Act
