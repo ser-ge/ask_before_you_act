@@ -331,11 +331,11 @@ def gen_configs(sweep_config):
 
     for param in params:
         if 'values' in params[param].keys():
-            sweep_params[param]  = params[param]['values']
+            sweep_params[param] = params[param]['values']
         else:
             fixed_params.append(param)
 
-    base_config = {param : params[param]['value'] for param in fixed_params}
+    base_config = {param: params[param]['value'] for param in fixed_params}
 
     for param_values in product(*list(sweep_params.values())):
         cfg = base_config.copy()
