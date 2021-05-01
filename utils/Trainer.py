@@ -102,6 +102,10 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             if train:
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
+            else:
+                episode_loss, losses_tuple = (0,(0,0,0,None,None))
+                # for further info on the above looks like jank, please see the update function on the agents
+
 
             # Reset episode
             state = env.reset()['image']  # Discard other info
@@ -162,7 +166,7 @@ def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_rewar
             )
             if episode % cfg.train_log_interval == 0:
                 logger.log({"train/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"])})
-
+    else: # ross adding this because pycharm extract method doesn't look like it worked?
         if cfg.baseline:
             logger.log(
                 {
