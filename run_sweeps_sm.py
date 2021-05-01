@@ -53,7 +53,7 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 3000
+    train_episodes: float = 4000
     test_episodes: float = 10
     train_log_interval: float = 1000
     test_log_interval: float = 1
@@ -85,9 +85,9 @@ RUNS_PATH = Path('./data')
 
 
 sweep_config = {
-    "name" : "MultiRoom ",
+    "name" : "Key Corridor",
     "method": "bayes",
-    "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
+    "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
     "parameters": {
         # "env_name" : {
@@ -95,7 +95,7 @@ sweep_config = {
         #     },
 
         "env_name" : {
-            'value' : 'MiniGrid-MultiRoom-N2-S4-v0'
+            'value' : 'MiniGrid-KeyCorridorS4R3-v0'
             },
 
 
@@ -188,53 +188,53 @@ sweep_config = {
     # }
 
 
-sweep_config = {
-    "name" : "MultiRoom ",
-    "method": "bayes",
-    "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
+# sweep_config = {
+#     "name" : "MultiRoom ",
+#     "method": "bayes",
+#     "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
 
-    "parameters": {
-        # "env_name" : {
-    "lr": {
-        "value": 0.0005
-    },
-    "clip": {
-        "value": 0.06918579620900824
-    },
-    "seed": {
-        "value": 1
-    },
-    "gamma": {
-        "value": 0.99
-    },
-    "lmbda": {
-        "value": 0.900962059302096
-    },
-    "env_name": {
-        "value": "MiniGrid-MultiRoom-N2-S4-v0"
-    },
-    "ans_random": {
-        "values": [1, 0]
-    },
-    "value_param": {
-        "value": 0.7917431064921301
-    },
-    "train_episodes": {
-        "value": 3000
-    },
-    "policy_qa_param": {
-        "value": 0.4645738650290009
-    },
-    "entropy_qa_param": {
-        "value": 0.07961069527502344
-    },
-    "entropy_act_param": {
-        "value": 0.14942151261798584
-    },
-    "advantage_qa_param": {
-        "value": 0.9962604482005916
-    },
-}}
+#     "parameters": {
+#         # "env_name" : {
+#     "lr": {
+#         "value": 0.0005
+#     },
+#     "clip": {
+#         "value": 0.06918579620900824
+#     },
+#     "seed": {
+#         "value": 1
+#     },
+#     "gamma": {
+#         "value": 0.99
+#     },
+#     "lmbda": {
+#         "value": 0.900962059302096
+#     },
+#     "env_name": {
+#         "value": "MiniGrid-MultiRoom-N2-S4-v0"
+#     },
+#     "ans_random": {
+#         "values": [1, 0]
+#     },
+#     "value_param": {
+#         "value": 0.7917431064921301
+#     },
+#     "train_episodes": {
+#         "value": 3000
+#     },
+#     "policy_qa_param": {
+#         "value": 0.4645738650290009
+#     },
+#     "entropy_qa_param": {
+#         "value": 0.07961069527502344
+#     },
+#     "entropy_act_param": {
+#         "value": 0.14942151261798584
+#     },
+#     "advantage_qa_param": {
+#         "value": 0.9962604482005916
+#     },
+# }}
 
 class Logger:
     def log(self, *args):
