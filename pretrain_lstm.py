@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    epochs: int = 30
+    epochs: int = 50
     batch_size : int = 256
     sequence_len: int = 10
     lstm_size : int = 128
