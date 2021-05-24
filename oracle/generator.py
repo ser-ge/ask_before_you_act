@@ -14,7 +14,6 @@ grammar.max_repetitions = 100000
 
 def gen_phrases():
     premises = []
-    for sentence in ["state_sentence", "direction_sentence"]:
-        for expression in grammar.generate(sentence):
-            premises.append(expression)
+    for expression in grammar.generate():
+        premises.append(expression)
     return premises
