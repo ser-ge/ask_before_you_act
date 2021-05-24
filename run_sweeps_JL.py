@@ -50,7 +50,7 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 10
+    train_episodes: float = 15
     test_episodes: float = 10
     train_log_interval: float = 3
     test_log_interval: float = 1
@@ -341,7 +341,8 @@ def run_curriculum():
     global default_config
     train_hist = []
     test_hist = []
-    total_runs = 2
+    total_runs = 3
+    window = 3
     for runs in range(total_runs):
         default_config.baseline = True
         train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
@@ -355,9 +356,9 @@ def run_curriculum():
 
     plot_experiment([mean_train_baseline, mean_test_baseline],
                     [std_train_baseline, std_test_baseline],
-                    total_runs, window=3)
+                    total_runs, window)
 
-    for runs in range(3):
+    for runs in range(total_runs):
         default_config.baseline = False
         train_reward, test_reward = run_experiment(cfg=default_config)
         train_hist.append(train_reward)
@@ -372,7 +373,7 @@ def run_curriculum():
                      mean_train_model, mean_test_model],
                     [std_train_baseline, std_test_baseline,
                      std_train_model, std_test_model],
-                    total_runs, window=3)
+                    total_runs, window)
 
 
 if __name__ == "__main__":
