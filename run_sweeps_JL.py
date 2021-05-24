@@ -50,7 +50,7 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 15
+    train_episodes: float = 9
     test_episodes: float = 10
     train_log_interval: float = 3
     test_log_interval: float = 1
@@ -236,43 +236,61 @@ def plot_experiment(means, stds, total_runs, window=25):
     import matplotlib.pyplot as plt
     import pandas as pd
 
-    # Baseline
     fig, axs = plt.subplots(2, 1)
-    mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
-    mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
-    std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
-    std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
+    if len(means) == 2:  # Baseline
+        mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
+        mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
+        std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
+        std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
 
-    episodes = np.linspace(0, len(mu_train_baseline)-1, num=len(mu_train_baseline))
+        episodes = np.linspace(0, len(mu_train_baseline)-1, num=len(mu_train_baseline))
 
-    axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
-    axs[0].plot(mu_train_baseline, label="Baseline")
-    axs[0].fill_between(episodes, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline, alpha=0.3)
-    axs[0].set_xlabel("Episodes")
-    axs[0].set_ylabel("Training reward")
-    axs[0].legend()
+        axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
+        axs[0].plot(mu_train_baseline, label="Baseline")
+        axs[0].fill_between(episodes, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline, alpha=0.3)
+        axs[0].set_xlabel("Episodes")
+        axs[0].set_ylabel("Training reward")
+        axs[0].legend()
 
-    axs[1].plot(mu_test_baseline, label="Baseline")
-    axs[1].fill_between(episodes, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline, alpha=0.3)
-    axs[1].set_xlabel("Episodes")
-    axs[1].set_ylabel("Test reward")
-    axs[1].legend()
-    plt.show()
+        axs[1].plot(mu_test_baseline, label="Baseline")
+        axs[1].fill_between(episodes, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline, alpha=0.3)
+        axs[1].set_xlabel("Episodes")
+        axs[1].set_ylabel("Test reward")
+        axs[1].legend()
+        plt.show()
 
-    if len(means) == 2:
-        return
-    else:  # Baseline + Model
+    else:
+        # Baseline
+        mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
+        mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
+        std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
+        std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
+
+        # Model
         mu_train_model = np.array((window - 1) * [0] + pd.Series(means[2]).rolling(window).mean().to_list()[window - 1:])
         mu_test_model = np.array((window - 1) * [0] + pd.Series(means[3]).rolling(window).mean().to_list()[window - 1:])
         std_train_model = np.array((window - 1) * [0] + pd.Series(stds[2]).rolling(window).mean().to_list()[window - 1:])
         std_test_model = np.array((window - 1) * [0] + pd.Series(stds[3]).rolling(window).mean().to_list()[window - 1:])
 
+        episodes = np.linspace(0, len(mu_train_baseline) - 1, num=len(mu_train_baseline))
+
+        axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
+        axs[0].plot(mu_train_baseline, label="Baseline")
+        axs[0].fill_between(episodes, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline,
+                            alpha=0.3)
         axs[0].plot(mu_train_model, label="Model")
         axs[0].fill_between(episodes, mu_train_model - std_train_model, mu_train_model + std_train_model, alpha=0.3)
+        axs[0].set_xlabel("Episodes")
+        axs[0].set_ylabel("Training reward")
         axs[0].legend()
 
+        axs[1].plot(mu_test_baseline, label="Baseline")
+        axs[1].fill_between(episodes, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline,
+                            alpha=0.3)
         axs[1].plot(mu_test_model, label="Model")
         axs[1].fill_between(episodes, mu_test_model - std_test_model, mu_test_model + std_test_model, alpha=0.3)
+        axs[1].set_xlabel("Episodes")
+        axs[1].set_ylabel("Test reward")
         axs[1].legend()
         plt.show()
     # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
