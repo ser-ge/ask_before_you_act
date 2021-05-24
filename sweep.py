@@ -48,7 +48,7 @@ class Config:
     entropy_qa_param: float = 0.05
     N_eps: float = 500
     train_log_interval: float = 25
-    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    # train_env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
 
     # "MiniGrid-Empty-5x5-v0"
     env_name: str = "MiniGrid-Empty-8x8-v0"
@@ -151,7 +151,7 @@ def run_experiment():
     if cfg.pre_trained_lstm:
         question_rnn.load("./language_model/pre-trained.pth")
 
-    env = gym.make(cfg.env_name)
+    env = gym.make(cfg.train_env_name)
 
     if cfg.use_seed:
         env.seed(cfg.seed)

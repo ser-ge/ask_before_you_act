@@ -55,7 +55,7 @@ class Config:
     train_log_interval: float = 5
     test_log_interval: float = 1
     env_name: str = "MiniGrid-Empty-8x8-v0"
-    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    # train_env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
@@ -84,11 +84,11 @@ sweep_config = {
     "metric": {"name": "eps_reward", "goal": "maximize"},
 
     "parameters": {
-        # "env_name" : {
+        # "train_env_name" : {
         #     'value' : 'MiniGrid-KeyCorridorS3R1-v0'
         #     },
 
-        "env_name" : {
+        "train_env_name" : {
             'value' : 'MiniGrid-MultiRoom-N2-S4-v0'
             },
 
@@ -157,7 +157,7 @@ sweep_config = {
     # "lmbda": {
     #     "value": 0.95
     # },
-    # "env_name": {
+    # "train_env_name": {
     #     "value": "MiniGrid-Empty-8x8-v0"
     # },
     # "ans_random": {

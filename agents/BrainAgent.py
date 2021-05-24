@@ -234,12 +234,11 @@ class AgentExpMem(Agent):
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
-    def update(self): # TODO - fix batch
+    def update(self):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
-
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
         *_ , next_hidden_hist_mem, cell_hist_mem  = next_trans
@@ -251,8 +250,6 @@ class AgentExpMem(Agent):
         V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem).squeeze()
 
         # Get next V
-        #TODO add next!
-
         next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem).squeeze()
 
         # Compute TD error
@@ -273,7 +270,8 @@ class AgentExpMem(Agent):
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = ((self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        L_policy_qa = ((self.policy_qa_param * reward_qa +
+                        self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
@@ -306,10 +304,6 @@ class AgentExpMem(Agent):
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
 
-
-
 def expand_zeros(tensor):
-
     pad = torch.zeros_like(tensor[0]).unsqueeze(0)
-
     return torch.cat((tensor, pad), 0)

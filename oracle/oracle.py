@@ -9,7 +9,6 @@ from oracle.lang import StatePremise, DirectionPremise, parser, TreeToGrid
 
 
 class Oracle:
-
     def __init__(self, parser, tree_to_grid, env, require_all=True):
 
         self.env = env
@@ -132,8 +131,7 @@ class OracleWrapper(gym.core.Wrapper):
 
         full_grid = np.rot90(np.fliplr(self.env.grid.encode()))
         try:
-
-            if np.random.rand() < self.ans_random:  # TODO - still penalize if syntax is incorrect?
+            if np.random.rand() < self.ans_random:
                 # if a draw from a uniform distribution returns a value less than the epsilon you
                 # pass, then, return a random answer
                 _ = self.oracle.answer(question, full_grid)

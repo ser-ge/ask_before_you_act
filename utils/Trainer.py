@@ -109,8 +109,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             step = 0
 
             reward_history.append(sum(episode_reward))
-            log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
-                      episode_reward, qa_pairs, reward_history, train)
+            if cfg.wandb:
+                log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
+                          episode_reward, qa_pairs, reward_history, train)
 
 
             episode_reward = []

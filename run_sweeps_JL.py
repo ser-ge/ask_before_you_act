@@ -50,22 +50,24 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 5000
+    train_episodes: float = 10
     test_episodes: float = 10
-    train_log_interval: float = 50
+    train_log_interval: float = 3
     test_log_interval: float = 1
-    env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
-    # env_name: str = "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-Empty-8x8-v0"
+    train_env_name: str = "MiniGrid-Empty-8x8-v0"
+    test_env_name: str = "MiniGrid-Empty-8x8-v0"
+    # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
     defined_q_reward: float = 0.2
     pre_trained_lstm: bool = True
-    use_seed: bool = True
+    use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
-    exp_mem: bool = False
-    baseline: bool = True
+    exp_mem: bool = True
+    baseline: bool = False
+    wandb: bool = False
 
 default_config = Config()
 
@@ -73,7 +75,7 @@ default_config = Config()
 
 device = "cpu"
 
-USE_WANDB = False
+USE_WANDB = default_config.wandb
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
 
@@ -84,11 +86,11 @@ sweep_config = {
     "metric": {"name": "eps_reward", "goal": "maximize"},
 
     "parameters": {
-        # "env_name" : {
+        # "train_env_name" : {
         #     'value' : 'MiniGrid-KeyCorridorS3R1-v0'
         #     },
 
-        "env_name" : {
+        "train_env_name" : {
             'value' : 'MiniGrid-MultiRoom-N2-S4-v0'
             },
 
@@ -141,49 +143,6 @@ sweep_config = {
     }
 }
 
-
-sweep_config = {
-    "name" : "8 by 8 sweeep true false",
-    "method": "bayes",
-    "metric": {"name": "avg_reward_episodes", "goal": "maximize"},
-    'parameters':
-    {
-    "lr": {
-        "value": 0.001
-    },
-    # "clip": {
-    #     "value": 0.11382609211422028
-    # },
-    # "lmbda": {
-    #     "value": 0.95
-    # },
-    # "env_name": {
-    #     "value": "MiniGrid-Empty-8x8-v0"
-    # },
-    # "ans_random": {
-    #     "value": 0
-    # },
-    # "value_param": {
-    #     "value": 1
-    # },
-    # "policy_qa_param": {
-    #     "value": 0.25
-    # },
-    # "entropy_qa_param": {
-    #     "value": 0.28267454781905166
-    # },
-    # "entropy_act_param": {
-    #     "value": 0.08081028521575984
-    # },
-    # "syntax_error_reward": {
-    #     "value": -0.2
-    # },
-    # "undefined_error_reward": {
-    #     "value": -0.1
-    # }
-} }
-
-
 class Logger:
     def log(self, *args):
         pass
@@ -193,7 +152,6 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
     """
     pickle.load(open('data/run_results_Thu Apr 29 13:14:39 2021.p', 'rb'))
     """
-
     save_path = runs_path / Path('run_results_' + str(time.asctime()) + '.p')
 
     if USE_WANDB:
@@ -221,7 +179,7 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
         return experiments
 
 def run_experiment(cfg=default_config):
-    pprint.pprint(asdict(cfg))
+    # pprint.pprint(asdict(cfg))
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
@@ -236,55 +194,88 @@ def run_experiment(cfg=default_config):
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
 
-    env = gym.make(cfg.env_name)
+    env_train = gym.make(cfg.train_env_name)
+    env_test = gym.make(cfg.test_env_name)
 
     if cfg.use_seed:
-        env.seed(cfg.seed)
+        env_test.seed(cfg.seed)
+        env_train.seed(cfg.seed)
         np.random.seed(cfg.seed)
         torch.manual_seed(cfg.seed)
         random.seed(cfg.seed)
 
-    env = OracleWrapper(env, syntax_error_reward=cfg.syntax_error_reward,
-                        undefined_error_reward=cfg.undefined_error_reward,
-                        defined_q_reward = cfg.defined_q_reward,
-                        ans_random=cfg.ans_random)
+    env_train = OracleWrapper(env_train, syntax_error_reward=cfg.syntax_error_reward,
+                              undefined_error_reward=cfg.undefined_error_reward,
+                              defined_q_reward=cfg.defined_q_reward,
+                              ans_random=cfg.ans_random)
+
+    env_test = OracleWrapper(env_test, syntax_error_reward=cfg.syntax_error_reward,
+                              undefined_error_reward=cfg.undefined_error_reward,
+                              defined_q_reward=cfg.defined_q_reward,
+                              ans_random=cfg.ans_random)
 
     # Agent
     agent = set_up_agent(cfg, question_rnn)
 
     # Train
-    train_reward = train_test(env, agent, cfg, logger, n_episodes=cfg.train_episodes,
+    train_reward = train_test(env_train, agent, cfg, logger, n_episodes=cfg.train_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
-    test_reward = train_test(env, agent, cfg, logger, n_episodes=cfg.test_episodes,
-                              log_interval=cfg.test_log_interval, train=False, verbose=True)
+    # Test
+    test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.train_episodes,
+                              log_interval=cfg.train_log_interval, train=True, verbose=True)
+
+    # test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
+    #                          log_interval=cfg.test_log_interval, train=False, verbose=True)
 
     if USE_WANDB:run.finish()
     return train_reward, test_reward
 
 
-def plot_experiment(averaged_data, total_runs, window=25):
+def plot_experiment(means, stds, total_runs, window=25):
+    import matplotlib.pyplot as plt
+    import pandas as pd
 
-    # avg_rnd = averaged_data['Random Noise'].rolling(window).mean()
-    # avg_good = averaged_data['Actual Information'].rolling(window).mean()
-    advantage = pd.Series(averaged_data.iloc[:, 0] - averaged_data.iloc[:, -1])
-    plt.style.use('default')
-    fig, axs = plt.subplots(2, 1, sharex='all')
-    fig.tight_layout()
+    # Baseline
+    fig, axs = plt.subplots(2, 1)
+    mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
+    mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
+    std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
+    std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
 
-    axs[0].plot(averaged_data.rolling(window).mean())
-    # axs[0].plot(avg_good,color='green')
-    axs[0].set_title(f"Reward training curves, smoothed over {total_runs} runs")
+    episodes = np.linspace(0, len(mu_train_baseline)-1, num=len(mu_train_baseline))
+
+    axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
+    axs[0].plot(mu_train_baseline, label="Baseline")
+    axs[0].fill_between(episodes, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline, alpha=0.3)
     axs[0].set_xlabel("Episodes")
-    axs[0].set_ylabel(f"{window} ep moving avg of mean agent reward")
-    axs[0].legend(averaged_data.columns)
+    axs[0].set_ylabel("Training reward")
+    axs[0].legend()
 
-    axs[1].plot(advantage, color='blue')
-    axs[1].set_title("Advantage of no random over random Agent")
+    axs[1].plot(mu_test_baseline, label="Baseline")
+    axs[1].fill_between(episodes, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline, alpha=0.3)
     axs[1].set_xlabel("Episodes")
+    axs[1].set_ylabel("Test reward")
+    axs[1].legend()
     plt.show()
-    # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
 
+    if len(means) == 2:
+        return
+    else:  # Baseline + Model
+        mu_train_model = np.array((window - 1) * [0] + pd.Series(means[2]).rolling(window).mean().to_list()[window - 1:])
+        mu_test_model = np.array((window - 1) * [0] + pd.Series(means[3]).rolling(window).mean().to_list()[window - 1:])
+        std_train_model = np.array((window - 1) * [0] + pd.Series(stds[2]).rolling(window).mean().to_list()[window - 1:])
+        std_test_model = np.array((window - 1) * [0] + pd.Series(stds[3]).rolling(window).mean().to_list()[window - 1:])
+
+        axs[0].plot(mu_train_model, label="Model")
+        axs[0].fill_between(episodes, mu_train_model - std_train_model, mu_train_model + std_train_model, alpha=0.3)
+        axs[0].legend()
+
+        axs[1].plot(mu_test_model, label="Model")
+        axs[1].fill_between(episodes, mu_test_model - std_test_model, mu_test_model + std_test_model, alpha=0.3)
+        axs[1].legend()
+        plt.show()
+    # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
 
 def set_up_agent(cfg, question_rnn):
     if cfg.baseline:
@@ -292,7 +283,6 @@ def set_up_agent(cfg, question_rnn):
             model = BaselineModelExpMem()
             agent = BaselineAgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                              cfg.value_param, cfg.entropy_act_param)
-
 
         else:
             model = BaselineModel()
@@ -323,13 +313,11 @@ def set_up_agent(cfg, question_rnn):
     return agent
 
 def gen_configs(sweep_config):
-
     params = sweep_config['parameters']
 
     configs = []
     sweep_params = {}
     fixed_params = []
-
 
     for param in params:
         if 'values' in params[param].keys():
@@ -348,6 +336,45 @@ def gen_configs(sweep_config):
 
     return configs
 
+
+def run_curriculum():
+    global default_config
+    train_hist = []
+    test_hist = []
+    total_runs = 2
+    for runs in range(total_runs):
+        default_config.baseline = True
+        train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
+        train_hist.append(train_reward_baseline)
+        test_hist.append(test_reward_baseline)
+
+    mean_train_baseline = np.array(train_hist).mean(axis=0)
+    mean_test_baseline = np.array(test_hist).mean(axis=0)
+    std_train_baseline = np.array(train_hist).std(axis=0)
+    std_test_baseline = np.array(test_hist).std(axis=0)
+
+    plot_experiment([mean_train_baseline, mean_test_baseline],
+                    [std_train_baseline, std_test_baseline],
+                    total_runs, window=3)
+
+    for runs in range(3):
+        default_config.baseline = False
+        train_reward, test_reward = run_experiment(cfg=default_config)
+        train_hist.append(train_reward)
+        test_hist.append(test_reward)
+
+    mean_train_model = np.array(train_hist).mean(axis=0)
+    mean_test_model = np.array(test_hist).mean(axis=0)
+    std_train_model = np.array(train_hist).std(axis=0)
+    std_test_model = np.array(test_hist).std(axis=0)
+
+    plot_experiment([mean_train_baseline, mean_test_baseline,
+                     mean_train_model, mean_test_model],
+                    [std_train_baseline, std_test_baseline,
+                     std_train_model, std_test_model],
+                    total_runs, window=3)
+
+
 if __name__ == "__main__":
-    run_experiment()
+    run_curriculum()
     # run_experiments()
