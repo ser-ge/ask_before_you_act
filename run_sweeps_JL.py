@@ -50,12 +50,12 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 9
+    train_episodes: float = 250
     test_episodes: float = 10
-    train_log_interval: float = 3
+    train_log_interval: float = 25
     test_log_interval: float = 1
-    train_env_name: str = "MiniGrid-Empty-8x8-v0"
-    test_env_name: str = "MiniGrid-Empty-8x8-v0"
+    train_env_name: str = "MiniGrid-Empty-5x5-v0"
+    test_env_name: str = "MiniGrid-Empty-16x16-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
@@ -78,7 +78,6 @@ device = "cpu"
 USE_WANDB = default_config.wandb
 NUM_RUNS = 2
 RUNS_PATH = Path('./data')
-
 
 sweep_config = {
     "name" : "MiniGrid-KeyCorridorS6R3-v0",
@@ -222,7 +221,7 @@ def run_experiment(cfg=default_config):
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
     # Test
-    test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.train_episodes,
+    test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
     # test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
@@ -230,7 +229,6 @@ def run_experiment(cfg=default_config):
 
     if USE_WANDB:run.finish()
     return train_reward, test_reward
-
 
 def plot_experiment(means, stds, total_runs, window=25):
     import matplotlib.pyplot as plt
@@ -354,7 +352,6 @@ def gen_configs(sweep_config):
 
     return configs
 
-
 def run_curriculum():
     global default_config
     train_hist = []
@@ -362,6 +359,7 @@ def run_curriculum():
     total_runs = 3
     window = 3
     for runs in range(total_runs):
+        print(f"------------------ Run: {runs:.1f} || Agent: Baseline ------------------")
         default_config.baseline = True
         train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
         train_hist.append(train_reward_baseline)
@@ -377,6 +375,7 @@ def run_curriculum():
                     total_runs, window)
 
     for runs in range(total_runs):
+        print(f"------------------ Run: {runs:.1f} || Agent: Model ------------------")
         default_config.baseline = False
         train_reward, test_reward = run_experiment(cfg=default_config)
         train_hist.append(train_reward)
