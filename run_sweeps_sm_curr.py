@@ -56,13 +56,14 @@ class Config:
     train_log_interval: float = 3
     test_log_interval: float = 1
     log_questions: bool = False
-    train_env_name: str =  "MiniGrid-MultiRoom-N2-S4-v0"
-    test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
+    train_env_name: str =  "MiniGrid-RedBlueDoors-6x6-v0"
+    test_env_name: str = "MiniGrid-RedBlueDoors-8x8-v0"
     #, "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
     defined_q_reward: float = 0.2
+    defined_q_reward_test : float = 0
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
@@ -74,17 +75,17 @@ class Config:
 
 
 
-def load_yaml_config(path_to_yaml)
-    try:
-        with open (path_to_yaml, 'r') as file:
-        config = yaml.safe_load(file)
-    except Exception as e:
-    print('Error reading the config file')
+# def load_yaml_config(path_to_yaml)
+#     try:
+#         with open (path_to_yaml, 'r') as file:
+#         config = yaml.safe_load(file)
+#     except Exception as e:
+#     print('Error reading the config file')
 
 
 default_config = Config()
-yaml_config = load_yaml_config("./config.yaml")
-yaml_config = Config(**yaml_config)
+# yaml_config = load_yaml_config("./config.yaml")
+# yaml_config = Config(**yaml_config)
 
 device = "cpu"
 
@@ -177,7 +178,7 @@ def run_experiment(cfg=default_config):
 
     env_test = OracleWrapper(env_test, syntax_error_reward=cfg.syntax_error_reward,
                               undefined_error_reward=cfg.undefined_error_reward,
-                              defined_q_reward=cfg.defined_q_reward,
+                              defined_q_reward=cfg.defined_q_reward_test,
                               ans_random=cfg.ans_random)
 
     # Agent
