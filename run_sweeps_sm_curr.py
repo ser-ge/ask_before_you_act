@@ -9,6 +9,7 @@ import time
 from itertools import product
 from tqdm import tqdm
 
+import yaml
 import math
 import pprint
 import pickle
@@ -54,6 +55,7 @@ class Config:
     test_episodes: float = 5000
     train_log_interval: float = 3
     test_log_interval: float = 1
+    log_questions: bool = False
     train_env_name: str =  "MiniGrid-MultiRoom-N2-S4-v0"
     test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
     #, "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
@@ -67,11 +69,22 @@ class Config:
     use_mem: bool = True
     exp_mem: bool = True
     baseline: bool = False
-    wandb: bool = False
+    wandb: bool = True
+
+
+
+
+def load_yaml_config(path_to_yaml)
+    try:
+        with open (path_to_yaml, 'r') as file:
+        config = yaml.safe_load(file)
+    except Exception as e:
+    print('Error reading the config file')
+
 
 default_config = Config()
-
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+yaml_config = load_yaml_config("./config.yaml")
+yaml_config = Config(**yaml_config)
 
 device = "cpu"
 
@@ -133,7 +146,6 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
         return experiments
 
 def run_experiment(cfg=default_config):
-    # pprint.pprint(asdict(cfg))
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
@@ -173,16 +185,16 @@ def run_experiment(cfg=default_config):
 
     # Train
     train_reward = train_test(env_train, agent, cfg, logger, n_episodes=cfg.train_episodes,
-                              log_interval=cfg.train_log_interval, train=True, verbose=True)
+                              log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=False)
 
     # Test
-    test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.train_episodes,
-                              log_interval=cfg.train_log_interval, train=True, verbose=True)
+    test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
+                              log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
 
     # test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
     #                          log_interval=cfg.test_log_interval, train=False, verbose=True)
 
-    if USE_WANDB:run.finish()
+    if USE_WANDB: run.finish()
     return train_reward, test_reward
 
 
@@ -347,7 +359,7 @@ def run_curriculum():
                      std_train_model, std_test_model],
                     total_runs, window)
 
-
 if __name__ == "__main__":
-    run_curriculum()
+    # # run_curriculum()
     # run_experiments()
+    run_experiments()

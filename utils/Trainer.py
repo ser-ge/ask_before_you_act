@@ -26,7 +26,7 @@ Transition = namedtuple(
 )
 
 def train_test(env, agent, cfg, logger, n_episodes=1000,
-          log_interval=50, train=True, verbose=True):
+          log_interval=50, train=True, verbose=True, test_env=False):
     episode = 0
 
     episode_reward = []
@@ -115,7 +115,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             reward_history.append(sum(episode_reward))
             if cfg.wandb:
                 log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
-                          episode_reward, qa_pairs, reward_history, train)
+                          episode_reward, qa_pairs, reward_history, train, test_env)
 
 
             episode_reward = []
@@ -137,10 +137,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
 # test push again again
 def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
-              episode_reward, qa_pairs, reward_history, train):
+              episode_reward, qa_pairs, reward_history, train, test_env):
     if train:
         L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa = losses_tuple
-        if cfg.baseline:
+
+        if cfg.baseline and not test_env:
             logger.log(
                 {
                     "train/eps_reward": sum(episode_reward),
@@ -151,7 +152,22 @@ def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_rewar
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
-        else:
+
+
+        elif cfg.baseline and test_env:
+            logger.log(
+                {
+                    "test_env/eps_reward": sum(episode_reward),
+                    "test_env/total_loss": episode_loss,
+                    "test_env/L_clip": abs(L_clip),
+                    "test_env/L_value": abs(L_value),
+                    "test_env/L_entropy": abs(L_entropy),
+                    "test_env/avg_reward_episodes": sum(reward_history) / len(reward_history)
+                }
+            )
+
+
+        elif not cfg.baseline and  not test_env:
             logger.log(
                 {
                     "train/eps_reward": sum(episode_reward),
@@ -165,8 +181,26 @@ def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_rewar
                     "train/avg_reward_episodes": sum(reward_history) / len(reward_history)
                 }
             )
-            if episode % cfg.train_log_interval == 0:
+            if episode % cfg.train_log_interval == 0 and cfg.log_questions:
                 logger.log({"train/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"])})
+
+        else:
+            logger.log(
+                {
+                    "test_env/eps_reward": sum(episode_reward),
+                    "test_env/avg_reward_qa": sum(episode_qa_reward) / len(episode_qa_reward),
+                    "test_env/loss": episode_loss,
+                    "test_env/L_clip": abs(L_clip),
+                    "test_env/L_value": abs(L_value),
+                    "test_env/L_entropy": abs(L_entropy),
+                    "test_env/L_policy_qa": abs(L_policy_qa),
+                    "test_env/L_entropy_qa": abs(L_entropy_qa),
+                    "test_env/avg_reward_episodes": sum(reward_history) / len(reward_history)
+                }
+            )
+            if episode % cfg.train_log_interval == 0 and cfg.log_questions:
+                logger.log({"test_env/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"])})
+
     else: # ross adding this because pycharm extract method doesn't look like it worked?
         if cfg.baseline:
             logger.log(
