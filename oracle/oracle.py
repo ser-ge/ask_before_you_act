@@ -27,7 +27,7 @@ class Oracle:
         try:
             tree = self.parse(question)
         except:
-            raise MySyntaxError("invalid syntax")  # TODO - appropriate return value, perhaps exceptions
+            raise MySyntaxError("invalid syntax")
 
         premise = self.to_premise(tree)
 
@@ -50,6 +50,9 @@ class Oracle:
         states = grid[..., 2].ravel()
         matched = self.find_objects(premise, grid)
         matched = self.validate_matched(matched)
+
+        if premise[0] == 8:
+            raise MyValueError("goal has no state")
 
         return states[matched[0]] == premise.state_id
 
