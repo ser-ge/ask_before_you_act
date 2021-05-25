@@ -56,6 +56,7 @@ class Agent:
         return action.detach().item(), probs, entropy
 
     def update(self):
+
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
