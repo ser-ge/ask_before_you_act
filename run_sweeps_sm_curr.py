@@ -79,6 +79,7 @@ class Config:
     exp_mem: bool = True
     baseline: bool = True
     wandb: bool = True
+    notes: str = ""
 
 
 def load_yaml_config(path_to_yaml):
@@ -93,6 +94,8 @@ def load_yaml_config(path_to_yaml):
 yaml_config = load_yaml_config("./config.yaml")
 yaml_config = Config(**yaml_config)
 
+pprint.pprint(yaml_config)
+
 device = "cpu"
 
 
@@ -102,7 +105,7 @@ sweep_config = {
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters": }}
+    "parameters" : dict() }
 
 
 

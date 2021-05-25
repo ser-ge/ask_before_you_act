@@ -19,12 +19,12 @@ policy_qa_param: 0.25
 advantage_qa_param: 0.25
 entropy_qa_param: 0.05
 
-train_episodes: 3000
-test_episodes: 0
+train_episodes: 10
+test_episodes: 10
 
-train_log_interval: 3
-test_log_interval: 1
-log_questions: False
+train_log_interval: 1
+test_log_interval: 2
+log_questions: True
 
 train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
 test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
@@ -41,5 +41,6 @@ pre_trained_lstm: True
 use_mem: True
 use_seed: False
 exp_mem: True
-baseline: True
+baseline: False
 wandb: True
+notes: "test sweep"

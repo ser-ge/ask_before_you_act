@@ -101,7 +101,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         if done:
 
             # Update
-            if train and len(agent.data) >= 2:
+            if train:
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
             else:
@@ -113,10 +113,13 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             hist_mem = agent.init_memory()  # Initialize memory
             step = 0
 
+
             reward_history.append(sum(episode_reward))
-            if cfg.wandb and len(agent.data) >= 2:
+
+            if cfg.wandb:
                 log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
                           episode_reward, qa_pairs, reward_history, train, test_env)
+
 
             episode_reward = []
             episode_qa_reward = []
