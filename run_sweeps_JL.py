@@ -50,13 +50,14 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 250
-    test_episodes: float = 10
+    train_episodes: float = 2500
+    test_episodes: float = 1000
     train_log_interval: float = 25
     test_log_interval: float = 1
-    train_env_name: str = "MiniGrid-Empty-5x5-v0"
-    test_env_name: str = "MiniGrid-Empty-16x16-v0"
+    train_env_name: str = "MiniGrid-RedBlueDoors-6x6-v0"
+    test_env_name: str = "MiniGrid-KeyCorridorS3R2-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
+    # "MiniGrid-KeyCorridorS3R1-v0"
     ans_random: float = 0
     undefined_error_reward: float = 0
     syntax_error_reward: float = -0.2
@@ -160,7 +161,7 @@ def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH
 
     else:
         configs = gen_configs(configs)
-        experiments = [{'config' : cfg, 'train_rewards':[], 'test_rewards' : []} for cfg in configs]
+        experiments = [{'config': cfg, 'train_rewards': [], 'test_rewards': []} for cfg in configs]
 
         print(f"Total of {len(experiments)} experiments collected for {num_runs} runs each")
 
@@ -359,7 +360,7 @@ def run_curriculum():
     total_runs = 3
     window = 3
     for runs in range(total_runs):
-        print(f"------------------ Run: {runs:.1f} || Agent: Baseline ------------------")
+        print(f"====================== Run: {1+runs:.0f} || Agent: Baseline ======================")
         default_config.baseline = True
         train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
         train_hist.append(train_reward_baseline)
