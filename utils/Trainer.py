@@ -25,8 +25,9 @@ Transition = namedtuple(
     ],
 )
 
+
 def train_test(env, agent, cfg, logger, n_episodes=1000,
-          log_interval=50, train=True, verbose=True, test_env=False):
+               log_interval=50, train=True, verbose=True, test_env=False):
     episode = 0
 
     episode_reward = []
@@ -49,8 +50,8 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         # Ask before you act
         if cfg.baseline:
             action, log_prob_act, entropy_act = agent.act(state, hist_mem[0])
-            answer, reward_qa, entropy_qa = (1,0,1)
-            log_prob_qa = 6*[torch.Tensor([1])]
+            answer, reward_qa, entropy_qa = (1, 0, 1)
+            log_prob_qa = 6 * [torch.Tensor([1])]
             hidden_q = torch.ones(128)
 
         else:
@@ -98,14 +99,14 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         episode_reward.append(reward)
 
         if done:
+
             # Update
-            if train:
+            if train and len(agent.data) >= 2:
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
             else:
-                episode_loss, losses_tuple = (0,(0,0,0,None,None))
+                episode_loss, losses_tuple = (0, (0, 0, 0, None, None))
                 # for further info on the above looks like jank, please see the update function on the agents
-
 
             # Reset episode
             state = env.reset()['image']  # Discard other info
@@ -113,10 +114,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             step = 0
 
             reward_history.append(sum(episode_reward))
-            if cfg.wandb:
+            if cfg.wandb and len(agent.data) >= 2:
                 log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
                           episode_reward, qa_pairs, reward_history, train, test_env)
-
 
             episode_reward = []
             episode_qa_reward = []
@@ -134,6 +134,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                 last_time = current_time
 
     return reward_history
+
 
 # test push again again
 def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
@@ -167,7 +168,7 @@ def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_rewar
             )
 
 
-        elif not cfg.baseline and  not test_env:
+        elif not cfg.baseline and not test_env:
             logger.log(
                 {
                     "train/eps_reward": sum(episode_reward),
@@ -201,7 +202,7 @@ def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_rewar
             if episode % cfg.train_log_interval == 0 and cfg.log_questions:
                 logger.log({"test_env/questions": wandb.Table(data=qa_pairs, columns=["Question", "Answer", "Reward"])})
 
-    else: # ross adding this because pycharm extract method doesn't look like it worked?
+    else:  # ross adding this because pycharm extract method doesn't look like it worked?
         if cfg.baseline:
             logger.log(
                 {
