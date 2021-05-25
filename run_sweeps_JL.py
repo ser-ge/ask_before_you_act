@@ -45,17 +45,17 @@ class Config:
     gamma: float = 0.99
     lmbda: float = 0.95
     clip: float = 0.2
-    entropy_act_param: float = 0.1
+    entropy_act_param: float = 0.05
     value_param: float = 1
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 2500
-    test_episodes: float = 1000
-    train_log_interval: float = 25
-    test_log_interval: float = 1
-    train_env_name: str = "MiniGrid-RedBlueDoors-6x6-v0"
-    test_env_name: str = "MiniGrid-KeyCorridorS3R2-v0"
+    train_episodes: float = 10000
+    test_episodes: float = 5000
+    train_log_interval: float = 250
+    test_log_interval: float = 100
+    train_env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     # "MiniGrid-KeyCorridorS3R1-v0"
     ans_random: float = 0
@@ -147,6 +147,129 @@ class Logger:
     def log(self, *args):
         pass
 
+def plot_experiment(means, stds, total_runs, window=25):
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    fig, axs = plt.subplots(2, 1)
+    if len(means) == 2:  # Baseline
+        mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
+        mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
+        std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
+        std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
+
+        episodes_train = np.linspace(0, len(mu_train_baseline)-1, num=len(mu_train_baseline))
+        episodes_tests = np.linspace(0, len(mu_test_baseline) - 1, num=len(mu_test_baseline))
+
+        axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
+        axs[0].plot(mu_train_baseline, label="Baseline")
+        axs[0].fill_between(episodes_train, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline, alpha=0.3)
+        axs[0].set_xlabel("Episodes")
+        axs[0].set_ylabel("Training reward")
+        axs[0].legend()
+
+        axs[1].plot(mu_test_baseline, label="Baseline")
+        axs[1].fill_between(episodes_tests, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline, alpha=0.3)
+        axs[1].set_xlabel("Episodes")
+        axs[1].set_ylabel("Test reward")
+        axs[1].legend()
+        plt.show()
+
+    else:
+        # Baseline
+        mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
+        mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
+        std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
+        std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
+
+        # Model
+        mu_train_model = np.array((window - 1) * [0] + pd.Series(means[2]).rolling(window).mean().to_list()[window - 1:])
+        mu_test_model = np.array((window - 1) * [0] + pd.Series(means[3]).rolling(window).mean().to_list()[window - 1:])
+        std_train_model = np.array((window - 1) * [0] + pd.Series(stds[2]).rolling(window).mean().to_list()[window - 1:])
+        std_test_model = np.array((window - 1) * [0] + pd.Series(stds[3]).rolling(window).mean().to_list()[window - 1:])
+
+        episodes_train = np.linspace(0, len(mu_train_model) - 1, num=len(mu_train_model))
+        episodes_tests = np.linspace(0, len(mu_test_model) - 1, num=len(mu_test_model))
+
+        axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
+        axs[0].plot(mu_train_baseline, label="Baseline")
+        axs[0].fill_between(episodes_train, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline,
+                            alpha=0.3)
+        axs[0].plot(mu_train_model, label="Model")
+        axs[0].fill_between(episodes_train, mu_train_model - std_train_model, mu_train_model + std_train_model, alpha=0.3)
+        axs[0].set_xlabel("Episodes")
+        axs[0].set_ylabel("Training reward")
+        axs[0].legend()
+
+        axs[1].plot(mu_test_baseline, label="Baseline")
+        axs[1].fill_between(episodes_tests, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline,
+                            alpha=0.3)
+        axs[1].plot(mu_test_model, label="Model")
+        axs[1].fill_between(episodes_tests, mu_test_model - std_test_model, mu_test_model + std_test_model, alpha=0.3)
+        axs[1].set_xlabel("Episodes")
+        axs[1].set_ylabel("Test reward")
+        axs[1].legend()
+        plt.show()
+    # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
+
+def set_up_agent(cfg, question_rnn):
+    if cfg.baseline:
+        if cfg.use_mem:
+            model = BaselineModelExpMem()
+            agent = BaselineAgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                             cfg.value_param, cfg.entropy_act_param)
+
+        else:
+            model = BaselineModel()
+            agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                                        cfg.value_param, cfg.entropy_act_param)
+
+    else:
+        if cfg.use_mem and cfg.exp_mem:
+            model = BrainNetExpMem(question_rnn)
+            agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                                cfg.value_param, cfg.entropy_act_param,
+                                cfg.policy_qa_param, cfg.advantage_qa_param,
+                                cfg.entropy_qa_param)
+
+        elif cfg.use_mem and not cfg.exp_mem:
+            model = BrainNetMem(question_rnn)
+            agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                             cfg.value_param, cfg.entropy_act_param,
+                             cfg.policy_qa_param, cfg.advantage_qa_param,
+                             cfg.entropy_qa_param)
+
+        else:
+            model = BrainNet(question_rnn)
+            agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                          cfg.value_param, cfg.entropy_act_param,
+                          cfg.policy_qa_param, cfg.advantage_qa_param,
+                          cfg.entropy_qa_param)
+    return agent
+
+def gen_configs(sweep_config):
+    params = sweep_config['parameters']
+
+    configs = []
+    sweep_params = {}
+    fixed_params = []
+
+    for param in params:
+        if 'values' in params[param].keys():
+            sweep_params[param] = params[param]['values']
+        else:
+            fixed_params.append(param)
+
+    base_config = {param: params[param]['value'] for param in fixed_params}
+
+    for param_values in product(*list(sweep_params.values())):
+        cfg = base_config.copy()
+        for i, param in enumerate(sweep_params.keys()):
+            cfg[param] = param_values[i]
+
+        configs.append(cfg)
+
+    return configs
 
 def run_experiments(configs=sweep_config, num_runs=NUM_RUNS, runs_path=RUNS_PATH):
     """
@@ -231,169 +354,56 @@ def run_experiment(cfg=default_config):
     if USE_WANDB:run.finish()
     return train_reward, test_reward
 
-def plot_experiment(means, stds, total_runs, window=25):
-    import matplotlib.pyplot as plt
-    import pandas as pd
-
-    fig, axs = plt.subplots(2, 1)
-    if len(means) == 2:  # Baseline
-        mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
-        mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
-        std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
-        std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
-
-        episodes = np.linspace(0, len(mu_train_baseline)-1, num=len(mu_train_baseline))
-
-        axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
-        axs[0].plot(mu_train_baseline, label="Baseline")
-        axs[0].fill_between(episodes, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline, alpha=0.3)
-        axs[0].set_xlabel("Episodes")
-        axs[0].set_ylabel("Training reward")
-        axs[0].legend()
-
-        axs[1].plot(mu_test_baseline, label="Baseline")
-        axs[1].fill_between(episodes, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline, alpha=0.3)
-        axs[1].set_xlabel("Episodes")
-        axs[1].set_ylabel("Test reward")
-        axs[1].legend()
-        plt.show()
-
-    else:
-        # Baseline
-        mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
-        mu_test_baseline = np.array((window - 1) * [0] + pd.Series(means[1]).rolling(window).mean().to_list()[window - 1:])
-        std_train_baseline = np.array((window - 1) * [0] + pd.Series(stds[0]).rolling(window).mean().to_list()[window - 1:])
-        std_test_baseline = np.array((window - 1) * [0] + pd.Series(stds[1]).rolling(window).mean().to_list()[window - 1:])
-
-        # Model
-        mu_train_model = np.array((window - 1) * [0] + pd.Series(means[2]).rolling(window).mean().to_list()[window - 1:])
-        mu_test_model = np.array((window - 1) * [0] + pd.Series(means[3]).rolling(window).mean().to_list()[window - 1:])
-        std_train_model = np.array((window - 1) * [0] + pd.Series(stds[2]).rolling(window).mean().to_list()[window - 1:])
-        std_test_model = np.array((window - 1) * [0] + pd.Series(stds[3]).rolling(window).mean().to_list()[window - 1:])
-
-        episodes = np.linspace(0, len(mu_train_baseline) - 1, num=len(mu_train_baseline))
-
-        axs[0].set_title(f"Reward curves, smoothed over {total_runs} runs")
-        axs[0].plot(mu_train_baseline, label="Baseline")
-        axs[0].fill_between(episodes, mu_train_baseline - std_train_baseline, mu_train_baseline + std_train_baseline,
-                            alpha=0.3)
-        axs[0].plot(mu_train_model, label="Model")
-        axs[0].fill_between(episodes, mu_train_model - std_train_model, mu_train_model + std_train_model, alpha=0.3)
-        axs[0].set_xlabel("Episodes")
-        axs[0].set_ylabel("Training reward")
-        axs[0].legend()
-
-        axs[1].plot(mu_test_baseline, label="Baseline")
-        axs[1].fill_between(episodes, mu_test_baseline - std_test_baseline, mu_test_baseline + std_test_baseline,
-                            alpha=0.3)
-        axs[1].plot(mu_test_model, label="Model")
-        axs[1].fill_between(episodes, mu_test_model - std_test_model, mu_test_model + std_test_model, alpha=0.3)
-        axs[1].set_xlabel("Episodes")
-        axs[1].set_ylabel("Test reward")
-        axs[1].legend()
-        plt.show()
-    # fig.savefig("./figures/figure_run" + str(total_runs) + signature + ".png")
-
-def set_up_agent(cfg, question_rnn):
-    if cfg.baseline:
-        if cfg.use_mem:
-            model = BaselineModelExpMem()
-            agent = BaselineAgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                             cfg.value_param, cfg.entropy_act_param)
-
-        else:
-            model = BaselineModel()
-            agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                                        cfg.value_param, cfg.entropy_act_param)
-
-    else:
-        if cfg.use_mem and cfg.exp_mem:
-            model = BrainNetExpMem(question_rnn)
-            agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                                cfg.value_param, cfg.entropy_act_param,
-                                cfg.policy_qa_param, cfg.advantage_qa_param,
-                                cfg.entropy_qa_param)
-
-        elif cfg.use_mem and not cfg.exp_mem:
-            model = BrainNetMem(question_rnn)
-            agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                             cfg.value_param, cfg.entropy_act_param,
-                             cfg.policy_qa_param, cfg.advantage_qa_param,
-                             cfg.entropy_qa_param)
-
-        else:
-            model = BrainNet(question_rnn)
-            agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                          cfg.value_param, cfg.entropy_act_param,
-                          cfg.policy_qa_param, cfg.advantage_qa_param,
-                          cfg.entropy_qa_param)
-    return agent
-
-def gen_configs(sweep_config):
-    params = sweep_config['parameters']
-
-    configs = []
-    sweep_params = {}
-    fixed_params = []
-
-    for param in params:
-        if 'values' in params[param].keys():
-            sweep_params[param] = params[param]['values']
-        else:
-            fixed_params.append(param)
-
-    base_config = {param: params[param]['value'] for param in fixed_params}
-
-    for param_values in product(*list(sweep_params.values())):
-        cfg = base_config.copy()
-        for i, param in enumerate(sweep_params.keys()):
-            cfg[param] = param_values[i]
-
-        configs.append(cfg)
-
-    return configs
-
-def run_curriculum():
+def run_curriculum(total_runs = 3, window = 3):
     global default_config
-    train_hist = []
-    test_hist = []
-    total_runs = 3
-    window = 3
+    train_hist_baseline = []
+    test_hist_baseline = []
+    train_hist_model = []
+    test_hist_model = []
     for runs in range(total_runs):
-        print(f"====================== Run: {1+runs:.0f} || Agent: Baseline ======================")
+        print(f"====================== Run: {1+runs:d} || Agent: Baseline ======================")
         default_config.baseline = True
         train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
-        train_hist.append(train_reward_baseline)
-        test_hist.append(test_reward_baseline)
+        train_hist_baseline.append(train_reward_baseline)
+        test_hist_baseline.append(test_reward_baseline)
 
-    mean_train_baseline = np.array(train_hist).mean(axis=0)
-    mean_test_baseline = np.array(test_hist).mean(axis=0)
-    std_train_baseline = np.array(train_hist).std(axis=0)
-    std_test_baseline = np.array(test_hist).std(axis=0)
+        mean_train_baseline = np.array(train_hist_baseline).mean(axis=0)
+        std_train_baseline = np.array(train_hist_baseline).std(axis=0)
 
-    plot_experiment([mean_train_baseline, mean_test_baseline],
-                    [std_train_baseline, std_test_baseline],
-                    total_runs, window)
+        mean_test_baseline = np.array(test_hist_baseline).mean(axis=0)
+        std_test_baseline = np.array(test_hist_baseline).std(axis=0)
+
+        plot_experiment([mean_train_baseline, mean_test_baseline],
+                        [std_train_baseline, std_test_baseline],
+                        runs+1, window)
 
     for runs in range(total_runs):
-        print(f"------------------ Run: {runs:.1f} || Agent: Model ------------------")
+        print(f"====================== Run: {1+runs:d} || Agent: Model ======================")
         default_config.baseline = False
-        train_reward, test_reward = run_experiment(cfg=default_config)
-        train_hist.append(train_reward)
-        test_hist.append(test_reward)
+        train_reward_model, test_reward_model = run_experiment(cfg=default_config)
+        train_hist_model.append(train_reward_model)
+        test_hist_model.append(test_reward_model)
 
-    mean_train_model = np.array(train_hist).mean(axis=0)
-    mean_test_model = np.array(test_hist).mean(axis=0)
-    std_train_model = np.array(train_hist).std(axis=0)
-    std_test_model = np.array(test_hist).std(axis=0)
+        mean_train_model = np.array(train_hist_model).mean(axis=0)
+        std_train_model = np.array(train_hist_model).std(axis=0)
+        mean_test_model = np.array(test_hist_model).mean(axis=0)
+        std_test_model = np.array(test_hist_model).std(axis=0)
 
-    plot_experiment([mean_train_baseline, mean_test_baseline,
-                     mean_train_model, mean_test_model],
-                    [std_train_baseline, std_test_baseline,
-                     std_train_model, std_test_model],
-                    total_runs, window)
+        plot_experiment([mean_train_baseline, mean_test_baseline,
+                         mean_train_model, mean_test_model],
+                        [std_train_baseline, std_test_baseline,
+                         std_train_model, std_test_model],
+                        runs+1, window)
+
+    save_path = Path('./data') / Path('run_results_' + str(time.asctime()) + '.p')
+    configs = asdict(default_config)
+    experiments = {'config': configs, 'train_rewards_baseline': [], 'test_rewards_baseline': [],
+                   'train_rewards_model': [], 'test_rewards_model': []}
+
+    pickle.dump(experiments, open(save_path, 'wb'))
+    print(f"Run results saved to {save_path}")
 
 
 if __name__ == "__main__":
-    run_curriculum()
+    run_curriculum(total_runs=3, window=25)
     # run_experiments()
