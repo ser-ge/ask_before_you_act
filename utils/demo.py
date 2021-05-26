@@ -6,11 +6,6 @@ from IPython import display
 from gym.wrappers import Monitor
 from dataclasses import dataclass
 
-from agents.BaselineAgent import BaselineAgentExpMem, BaselineAgent
-from agents.BrainAgent import AgentExpMem, AgentMem, Agent
-from models.BaselineModel import BaselineModelExpMem, BaselineModel
-from models.BrainModel import BrainNetExpMem, BrainNetMem, BrainNet
-
 @dataclass
 class Config:
     train: bool = True
@@ -67,37 +62,3 @@ def wrap_env_video_monitor(env):
     env = Monitor(env, './video', force=True)
     return env
 
-def set_up_agent(cfg, question_rnn):
-    if cfg.baseline:
-        if cfg.use_mem:
-            model = BaselineModelExpMem()
-            agent = BaselineAgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                             cfg.value_param, cfg.entropy_act_param)
-
-        else:
-            model = BaselineModel()
-            agent = BaselineAgent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                                        cfg.value_param, cfg.entropy_act_param)
-
-    else:
-        if cfg.use_mem and cfg.exp_mem:
-            model = BrainNetExpMem(question_rnn)
-            agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                                cfg.value_param, cfg.entropy_act_param,
-                                cfg.policy_qa_param, cfg.advantage_qa_param,
-                                cfg.entropy_qa_param)
-
-        elif cfg.use_mem and not cfg.exp_mem:
-            model = BrainNetMem(question_rnn)
-            agent = AgentMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                             cfg.value_param, cfg.entropy_act_param,
-                             cfg.policy_qa_param, cfg.advantage_qa_param,
-                             cfg.entropy_qa_param)
-
-        else:
-            model = BrainNet(question_rnn)
-            agent = Agent(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                          cfg.value_param, cfg.entropy_act_param,
-                          cfg.policy_qa_param, cfg.advantage_qa_param,
-                          cfg.entropy_qa_param)
-    return agent
