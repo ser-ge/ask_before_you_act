@@ -104,7 +104,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         if done:
 
             # Update
-            if train:
+            if train and len(agent.data) >= 2:
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
             else:
