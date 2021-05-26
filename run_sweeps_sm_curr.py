@@ -20,6 +20,7 @@ from agents.BrainAgent import Agent, AgentMem, AgentExpMem
 
 from models.BaselineModel import BaselineModel, BaselineModelExpMem
 from models.BrainModel import BrainNet, BrainNetMem, BrainNetExpMem
+from models.FilmModel import FilmNet
 
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
@@ -77,6 +78,8 @@ class Config:
     use_mem: bool = True
     use_seed: bool = False
     exp_mem: bool = True
+
+    film: bool = True
     baseline: bool = True
     wandb: bool = True
     notes: str = ""
@@ -105,7 +108,8 @@ sweep_config = {
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" : dict() }
+    "parameters" :{
+        "ans_random" : {"values" : [0, 1]}}}
 
 
 
@@ -121,10 +125,13 @@ def run_experiment(cfg=yaml_config):
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
-    run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
-    logger = wandb
-    cfg = wandb.config
-
+    if cfg.wandb:
+        run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
+        logger = wandb
+        cfg = wandb.config
+    else:
+        from run_sweeps_JL import Logger
+        logger = Logger()
 
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
@@ -163,7 +170,8 @@ def run_experiment(cfg=yaml_config):
                                   log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
 
 
-    run.finish()
+    if cfg.wandb:
+        run.finish()
 
 
 
@@ -180,7 +188,14 @@ def set_up_agent(cfg, question_rnn):
                                         cfg.value_param, cfg.entropy_act_param)
 
     else:
-        if cfg.use_mem and cfg.exp_mem:
+        if cfg.use_mem and cfg.exp_mem and cfg.film:
+            model = FilmNet(question_rnn)
+            agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                                cfg.value_param, cfg.entropy_act_param,
+                                cfg.policy_qa_param, cfg.advantage_qa_param,
+                                cfg.entropy_qa_param)
+
+        elif cfg.use_mem and cfg.exp_mem:
             model = BrainNetExpMem(question_rnn)
             agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                                 cfg.value_param, cfg.entropy_act_param,

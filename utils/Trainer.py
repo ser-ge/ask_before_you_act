@@ -56,9 +56,12 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
         else:
             # Ask
+
             question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
 
+            # if episode % log_interval == 0:
+            #     print(question, " ", answer)
             # Logging
             episode_qa_reward.append(reward_qa)
             qa_pairs.append([question, str(answer), reward_qa])  # Storing
@@ -114,6 +117,8 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             step = 0
 
 
+
+
             reward_history.append(sum(episode_reward))
 
             if cfg.wandb:
@@ -133,6 +138,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                     avg_R = np.mean(reward_history[-log_interval:])
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}, "
                           f"EPS: {log_interval / (current_time - last_time):.1f} ")
+
                 avg_syntax_r = 0
                 last_time = current_time
 
