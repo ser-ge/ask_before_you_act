@@ -5,6 +5,7 @@ from collections import namedtuple
 from oracle.oracle import Answer
 import torch
 import wandb
+import time
 
 Transition = namedtuple(
     "Transition",
@@ -56,8 +57,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
         else:
             # Ask
-            question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
+            question, hidden_q, log_prob_qa, entropy_qa, tkn_dists_qa = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
+
+            # TODO - stop grad through QA hidden state to avoid loopy shit
+            hidden_q = hidden_q.detach()
 
             # Logging
             episode_qa_reward.append(reward_qa)
@@ -67,8 +71,36 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
+            if episode % log_interval == 0:
+                print([question, str(answer), reward_qa])
+
             # Act
-            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
+            action, log_prob_act, entropy_act, action_prob = agent.act(state, answer, hidden_q, hist_mem[0])
+
+            # TODO - add mutual info crap
+            t0 = time.time()
+            total_prob = 0
+            for _ in range(1000):
+                words_MI = []
+                log_prob_qa_MI = 0
+                for tkn_dist in tkn_dists_qa:
+                    tkn_idx_MI = torch.distributions.Categorical(tkn_dist).sample()
+                    word_MI = agent.model.question_rnn.dataset.index_to_word[tkn_idx_MI.item()]
+                    words_MI.append(word_MI)
+                    log_prob_qa_MI += torch.distributions.Categorical(tkn_dist).log_prob(tkn_idx_MI)
+                question_MI = ' '.join(words_MI[:-1])
+                answer_MI, _ = env.answer(question_MI)
+                answer_MI = answer_MI.encode()
+                action_MI, _, entropy_act_MI, action_prob_MI = agent.act(state, answer_MI, hidden_q, hist_mem[0])
+
+                total_prob += action_prob_MI * torch.exp(log_prob_qa_MI)
+
+            entropy_act_marginal = torch.distributions.Categorical(total_prob).entropy().item()
+            mi = entropy_act_marginal - entropy_act_MI
+            t1 = time.time()
+
+            print(t1-t0)
+
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also
@@ -99,7 +131,6 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         episode_reward.append(reward)
 
         if done:
-
             # Update
             if train:
                 episode_loss, losses_tuple = agent.update()
@@ -113,17 +144,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             hist_mem = agent.init_memory()  # Initialize memory
             step = 0
 
-
             reward_history.append(sum(episode_reward))
 
             if cfg.wandb:
                 log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
                           episode_reward, qa_pairs, reward_history, train, test_env)
-
-
-            episode_reward = []
-            episode_qa_reward = []
-            qa_pairs = []
 
             episode += 1
 
@@ -133,8 +158,13 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                     avg_R = np.mean(reward_history[-log_interval:])
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}, "
                           f"EPS: {log_interval / (current_time - last_time):.1f} ")
+                    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 avg_syntax_r = 0
                 last_time = current_time
+
+            episode_reward = []
+            episode_qa_reward = []
+            qa_pairs = []
 
     return reward_history
 

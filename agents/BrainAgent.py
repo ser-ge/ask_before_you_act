@@ -37,13 +37,13 @@ class Agent:
 
     def ask(self, observation, hidden_hist_mem):
         observation = torch.FloatTensor(observation).to(device)
-        tokens, hidden_q, log_probs_qa, entropy_qa = self.model.gen_question(observation, hidden_hist_mem)
+        tokens, hidden_q, log_probs_qa, entropy_qa, tkn_dists_qa = self.model.gen_question(observation, hidden_hist_mem)
         output = ' '.join(tokens)
-        return output, hidden_q, log_probs_qa, entropy_qa
+        return output, hidden_q, log_probs_qa, entropy_qa, tkn_dists_qa
 
     def act(self, observation, ans, hidden_q, hidden_hist):
         # Calculate policy
-        _ = hidden_hist # does nothing, just accepts
+        _ = hidden_hist  # does nothing, just accepts
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
         logits = self.model.policy(observation, ans, hidden_q)
@@ -88,7 +88,8 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = ((self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        L_policy_qa = ((self.policy_qa_param * reward_qa
+                        + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
@@ -234,7 +235,7 @@ class AgentExpMem(Agent):
         action = dist.sample()
         probs = action_prob[action]  # Policy log prob
         entropy = dist.entropy()  # Entropy regularizer
-        return action.detach().item(), probs, entropy
+        return action.detach().item(), probs, entropy, action_prob
 
     def update(self):
         current_trans, next_trans = self.get_batch()
@@ -269,8 +270,11 @@ class AgentExpMem(Agent):
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = ((self.policy_qa_param * reward_qa +
-                        self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        # L_policy_qa = ((self.policy_qa_param * reward_qa
+        #                 + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        adv = self.advantage_qa_param * next_V_pred.detach()
+        L_policy_qa = ((self.policy_qa_param * reward_qa + adv) * log_prob_qa).mean()
+        # L_policy_qa = (reward_qa * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 

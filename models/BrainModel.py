@@ -72,6 +72,7 @@ class BrainNet(nn.Module):
         cx = torch.randn(hx.shape).to(device)  # (batch, hidden_size)
         entropy_qa = 0
         log_probs_qa = []
+        tkn_dists_qa = []
         words = ['<sos>']
 
         memory = (hx, cx)
@@ -86,14 +87,16 @@ class BrainNet(nn.Module):
             entropy_qa += m.entropy().item()
             word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
             words.append(word)
-            if len(words) > 6: break
+            tkn_dists_qa.append(dist)
+            if len(words) > 6:
+                break
 
         entropy_qa /= len(words)
 
         last_hidden_state = memory[0]
         output = words[1:-1]  # remove sos and eos
 
-        return output, last_hidden_state, log_probs_qa, entropy_qa
+        return output, last_hidden_state, log_probs_qa, entropy_qa, tkn_dists_qa
 
     def encode_obs(self, obs):
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)

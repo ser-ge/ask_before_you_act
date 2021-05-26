@@ -30,6 +30,9 @@ from dataclasses import dataclass, asdict
 
 import wandb
 
+import matplotlib.pyplot as plt
+import pandas as pd
+
 @dataclass
 class Config:
     train: bool = True
@@ -48,20 +51,20 @@ class Config:
     entropy_act_param: float = 0.05
     value_param: float = 1
     policy_qa_param: float = 0.25
-    advantage_qa_param: float = 0.25
-    entropy_qa_param: float = 0.2
-    train_episodes: float = 100
-    test_episodes: float = 100
-    train_log_interval: float = 25
-    test_log_interval: float = 25
-    train_env_name: str = "MiniGrid-Empty-8x8-v0"
-    test_env_name: str = "MiniGrid-Empty-8x8-v0"
+    advantage_qa_param: float = 0.5
+    entropy_qa_param: float = 0.5
+    train_episodes: float = 5000
+    test_episodes: float = 5000
+    train_log_interval: float = 100
+    test_log_interval: float = 100
+    train_env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     # "MiniGrid-KeyCorridorS3R1-v0"
     ans_random: float = 0
-    undefined_error_reward: float = 0
+    undefined_error_reward: float = 0.0
     syntax_error_reward: float = -0.2
-    defined_q_reward: float = 0.2
+    defined_q_reward: float = 0.0
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1
@@ -148,9 +151,6 @@ class Logger:
         pass
 
 def plot_experiment(means, stds, total_runs, window=25):
-    import matplotlib.pyplot as plt
-    import pandas as pd
-
     fig, axs = plt.subplots(2, 1)
     if len(means) == 2:  # Baseline
         mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
@@ -341,10 +341,12 @@ def run_experiment(cfg=default_config):
     agent = set_up_agent(cfg, question_rnn)
 
     # Train
+    print(f"------------------------------ Train ------------------------------")
     train_reward = train_test(env_train, agent, cfg, logger, n_episodes=cfg.train_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
     # Test
+    print(f"------------------------------ Test ------------------------------")
     test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
@@ -409,8 +411,17 @@ if __name__ == "__main__":
     # baseline_config.baseline = True
     # model_config.baseline = False
     # run_curriculum(baseline_config, model_config, total_runs=3, window=25)
+    default_config.baseline = False
+    train_reward, test_reward = run_experiment(default_config)
 
-    train_reward, test_reward = run_experiment()
-    mean_train_reward = np.array(train_reward).mean(axis=0)
-    std_train_reward = np.array(train_reward).std(axis=0)
-    plot_experiment(mean_train_reward, std_train_reward, total_runs=1, window=5)
+    window = 25
+    avg_train_reward = np.array((window - 1) * [0] + pd.Series(train_reward).rolling(window).mean().to_list()[window - 1:])
+    avg_test_reward = np.array((window - 1) * [0] + pd.Series(test_reward).rolling(window).mean().to_list()[window - 1:])
+    fig, axs = plt.subplots(1, 1)
+    axs.set_title(f"Reward curves")
+    axs.plot(avg_train_reward, label="Train")
+    axs.plot(avg_test_reward, label="Test")
+    axs.set_xlabel("Episodes")
+    axs.set_ylabel("Reward")
+    axs.legend()
+    plt.show()

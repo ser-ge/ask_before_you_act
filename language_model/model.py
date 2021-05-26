@@ -38,14 +38,11 @@ class Model(nn.Module):
         self.lstm = nn.LSTMCell(self.embedding_dim, self.lstm_size)
         self.fc = nn.Linear(self.lstm_size, n_vocab)
 
-
     def process_single_input(self, word, memory):
         x_train = self.embedding(word)
         memory = self.lstm(x_train, memory)
         h, c = memory
         return self.fc(self.dropout(h)), memory
-
-
 
     def forward(self, sequences, memory):
         batch_size = sequences.shape[0]
@@ -56,7 +53,6 @@ class Model(nn.Module):
 
         for t in range(sequence_len):
             output_seq[t], memory = self.process_single_input(sequences[:,t], memory)
-
 
         output_seq = rearrange(output_seq, "seq_len batch_size v_size -> (batch_size seq_len) v_size" )
 
