@@ -21,7 +21,7 @@ class Dataset(torch.utils.data.Dataset):
 
     def load_words(self):
         premises = list(json.load(open(self.path)))
-        text = ["<sos> " + p + " <eos>" for p in premises]
+        text = ["<sos> " + p + "<eos>" for p in premises]
         text = " ".join(text)
         return text.split(' ')
 
