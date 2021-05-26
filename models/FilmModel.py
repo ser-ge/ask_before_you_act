@@ -154,7 +154,6 @@ class FilmNet(nn.Module):
 
 
 
-
 class FiLMBlock(nn.Module):
     """
     apply gamma and beta to activations x

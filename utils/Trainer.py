@@ -108,7 +108,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
             else:
-                episode_loss, losses_tuple = (0, (0, 0, 0, None, None))
+                episode_loss, losses_tuple = (0, (0, 0, 0, 0, 0))
                 # for further info on the above looks like jank, please see the update function on the agents
 
             # Reset episode

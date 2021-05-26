@@ -85,6 +85,7 @@ class Config:
     notes: str = ""
 
 
+# %%
 def load_yaml_config(path_to_yaml):
     try:
         with open (path_to_yaml, 'r') as file:
@@ -108,8 +109,10 @@ sweep_config = {
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" :{
-        "ans_random" : {"values" : [0, 1]}}}
+    "parameters" :
+        # "ans_random" : {"values" : [0, 1]}}
+        dict()
+}
 
 
 
@@ -221,4 +224,7 @@ def set_up_agent(cfg, question_rnn):
 
 
 if __name__ == "__main__":
-    run_sweep()
+    if yaml_config.wandb:
+        run_sweep()
+    else:
+        run_experiment()
