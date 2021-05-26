@@ -49,13 +49,13 @@ class Config:
     value_param: float = 1
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
-    entropy_qa_param: float = 0.05
-    train_episodes: float = 10000
-    test_episodes: float = 5000
-    train_log_interval: float = 250
-    test_log_interval: float = 100
-    train_env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
-    test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
+    entropy_qa_param: float = 0.2
+    train_episodes: float = 100
+    test_episodes: float = 100
+    train_log_interval: float = 25
+    test_log_interval: float = 25
+    train_env_name: str = "MiniGrid-Empty-8x8-v0"
+    test_env_name: str = "MiniGrid-Empty-8x8-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     # "MiniGrid-KeyCorridorS3R1-v0"
     ans_random: float = 0
@@ -354,16 +354,14 @@ def run_experiment(cfg=default_config):
     if USE_WANDB:run.finish()
     return train_reward, test_reward
 
-def run_curriculum(total_runs = 3, window = 3):
-    global default_config
+def run_curriculum(baseline_config, model_config, total_runs = 3, window = 3):
     train_hist_baseline = []
     test_hist_baseline = []
     train_hist_model = []
     test_hist_model = []
     for runs in range(total_runs):
         print(f"====================== Run: {1+runs:d} || Agent: Baseline ======================")
-        default_config.baseline = True
-        train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
+        train_reward_baseline, test_reward_baseline = run_experiment(cfg=baseline_config)
         train_hist_baseline.append(train_reward_baseline)
         test_hist_baseline.append(test_reward_baseline)
 
@@ -379,8 +377,7 @@ def run_curriculum(total_runs = 3, window = 3):
 
     for runs in range(total_runs):
         print(f"====================== Run: {1+runs:d} || Agent: Model ======================")
-        default_config.baseline = False
-        train_reward_model, test_reward_model = run_experiment(cfg=default_config)
+        train_reward_model, test_reward_model = run_experiment(cfg=model_config)
         train_hist_model.append(train_reward_model)
         test_hist_model.append(test_reward_model)
 
@@ -397,13 +394,23 @@ def run_curriculum(total_runs = 3, window = 3):
 
     save_path = Path('./data') / Path('run_results_' + str(time.asctime()) + '.p')
     configs = asdict(default_config)
-    experiments = {'config': configs, 'train_rewards_baseline': [], 'test_rewards_baseline': [],
-                   'train_rewards_model': [], 'test_rewards_model': []}
+    experiments = {'config': configs, 'train_rewards_baseline': train_hist_baseline,
+                   'test_rewards_baseline': test_hist_baseline,
+                   'train_rewards_model': train_hist_model,
+                   'test_rewards_model': test_hist_model}
 
     pickle.dump(experiments, open(save_path, 'wb'))
     print(f"Run results saved to {save_path}")
 
 
 if __name__ == "__main__":
-    run_curriculum(total_runs=3, window=25)
-    # run_experiments()
+    # Curriculum
+    # model_config, baseline_config = default_config, default_config
+    # baseline_config.baseline = True
+    # model_config.baseline = False
+    # run_curriculum(baseline_config, model_config, total_runs=3, window=25)
+
+    train_reward, test_reward = run_experiment()
+    mean_train_reward = np.array(train_reward).mean(axis=0)
+    std_train_reward = np.array(train_reward).std(axis=0)
+    plot_experiment(mean_train_reward, std_train_reward, total_runs=1, window=5)

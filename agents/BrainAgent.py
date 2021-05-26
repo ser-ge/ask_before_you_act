@@ -213,6 +213,7 @@ class AgentMem(Agent):
         L_clip = torch.min(surrogate1, surrogate2).mean()
         return L_clip
 
+
 class AgentExpMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
@@ -239,14 +240,11 @@ class AgentExpMem(Agent):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
-        *_ , next_hidden_hist_mem, cell_hist_mem  = next_trans
+        *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
 
-        # Get current V
-
-        # Get next V
         # Get current V
         V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem).squeeze()
 
@@ -262,9 +260,9 @@ class AgentExpMem(Agent):
 
         # Clipped PPO Policy Loss
         # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
-        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem)
+        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist_mem)
 
-        # Entropy regularizer
+        # Entropy regulariser
         L_entropy = self.entropy_act_param * entropy_act.detach().mean()
 
         # Value function loss
@@ -279,7 +277,7 @@ class AgentExpMem(Agent):
         # Total loss
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
 
-        # Update paramss
+        # Update params
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()
@@ -304,6 +302,7 @@ class AgentExpMem(Agent):
         answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
+
 
 def expand_zeros(tensor):
     pad = torch.zeros_like(tensor[0]).unsqueeze(0)
