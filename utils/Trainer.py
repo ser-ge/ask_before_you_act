@@ -22,6 +22,7 @@ Transition = namedtuple(
         "done",
         "hidden_hist_mem",
         "cell_hist_mem",
+        "q_embedding",
     ],
 )
 
@@ -56,7 +57,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
         else:
             # Ask
-            question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
+            question, hidden_q, log_prob_qa, entropy_qa, q_embedding = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
 
             # TODO - stop grad through QA hidden state to avoid loopy shit
@@ -74,7 +75,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             #     print([question, str(answer), reward_qa])
 
             # Act
-            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
+            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0], q_embedding)
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also
@@ -92,7 +93,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         # Store
         t = Transition(state, answer, hidden_q, action, reward, reward_qa,
                        log_prob_act.item(), log_prob_qa, entropy_act.item(), entropy_qa, done,
-                       hist_mem[0], hist_mem[1])
+                       hist_mem[0], hist_mem[1], q_embedding)
 
         agent.store(t)
 

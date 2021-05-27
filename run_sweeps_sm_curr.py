@@ -105,11 +105,9 @@ sweep_config = {
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" : {
-    "ans_random" : {
-        "values" : [1, 0]
-        }
-    }}
+    "parameters" :
+        dict()
+    }
 
 
 
@@ -120,14 +118,22 @@ def run_sweep(configs=sweep_config):
     sweep_id = wandb.sweep(configs, project="ask_before_you_act")
     wandb.agent(sweep_id, function=run_experiment)
 
+class Logger:
+    def log(self, *args):
+        pass
+
 
 def run_experiment(cfg=yaml_config):
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
-    run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
-    logger = wandb
-    cfg = wandb.config
+    if cfg.wandb:
+        run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
+        logger = wandb
+        cfg = wandb.config
+
+    else:
+        logger = Logger()
 
 
     if cfg.pre_trained_lstm:
@@ -166,8 +172,8 @@ def run_experiment(cfg=yaml_config):
         test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                                   log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
 
-
-    run.finish()
+    if cfg.wandb:
+        run.finish()
 
 
 
@@ -210,4 +216,8 @@ def set_up_agent(cfg, question_rnn):
 
 
 if __name__ == "__main__":
-    run_sweep()
+    if yaml_config.wandb:
+        run_sweep()
+
+    else:
+        run_experiment()

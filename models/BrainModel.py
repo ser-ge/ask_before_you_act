@@ -44,6 +44,8 @@ class BrainNet(nn.Module):
         self.question_rnn = question_rnn
         self.softmax = nn.Softmax(dim=-1)
 
+        self.question_rnn.embedding.requires_grad = False
+
     def policy(self, obs, answer, hidden_q):
         """
         hidden_q : last hidden state
@@ -93,12 +95,21 @@ class BrainNet(nn.Module):
         last_hidden_state = memory[0]
         output = words[1:-1]  # remove sos and eos
 
-        return output, last_hidden_state, log_probs_qa, entropy_qa
+        embedding = self.emebed_question(words[1:])
+
+        return output, last_hidden_state, log_probs_qa, entropy_qa, embedding
 
     def encode_obs(self, obs):
         x = obs.view(-1, 3, 7, 7)  # x: (batch, C_in, H_in, W_in)
         obs_encoding = self.image_conv(x).view(-1, self.cnn_encoding_dim)  # x: (batch, hidden)
         return obs_encoding
+
+    def emebed_question(self, question):
+
+        idx = [self.question_rnn.dataset.word_to_index[word] for word in question]
+        embeddings = [self.question_rnn.embedding(torch.tensor(word)) for word in idx]
+        embeddings = torch.stack(embeddings)
+        return embeddings.mean(0)
 
 
 class BrainNetMem(BrainNet):
@@ -130,22 +141,22 @@ class BrainNetExpMem(BrainNetMem):
         # self.mem_hidden_dim is the explicit memory connection
         # 265 is 64 obs CNN + 7 one hot action + 2 of answer + 128 of Q&A hx + 64 from explicit memory
         self.policy_input_dim = self.cnn_encoding_dim  + 2 + self.hidden_q_dim \
-                                + self.mem_hidden_dim
+                                + self.mem_hidden_dim + 128
 
         self.policy_head = nn.Linear(self.policy_input_dim, action_dim)
         self.value_head = nn.Linear(self.policy_input_dim, 1)
 
-    def policy(self, obs, answer, hidden_q, hidden_hist_mem):
+    def policy(self, obs, answer, hidden_q, hidden_hist_mem, q_embedding):
         """
         hidden_q : last hidden state§
         """
         encoded_obs = self.encode_obs(obs)
-        x = torch.cat((encoded_obs, answer, hidden_q, hidden_hist_mem), 1)
+        x = torch.cat((encoded_obs, answer, hidden_q, hidden_hist_mem, q_embedding), 1)
         action_policy = self.policy_head(x)
         return action_policy
 
-    def value(self, obs, answer, hidden_q, hidden_hist_mem):
+    def value(self, obs, answer, hidden_q, hidden_hist_mem, q_embedding):
         encoded_obs = self.encode_obs(obs)
-        x = torch.cat((encoded_obs, answer, hidden_q,hidden_hist_mem), 1)
+        x = torch.cat((encoded_obs, answer, hidden_q,hidden_hist_mem, q_embedding), 1)
         state_value = self.value_head(x)
         return state_value

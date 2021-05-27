@@ -11,7 +11,7 @@ hidden_dim: 32
 lr: 0.0005
 gamma: 0.99
 lmbda: 0.95
-clip: 0.2
+clip: 0.15
 entropy_act_param: 0.1
 value_param: 1
 
@@ -26,15 +26,15 @@ train_log_interval: 250
 test_log_interval: 2
 log_questions: True
 
-train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+train_env_name: "MiniGrid-Empty-Random-6x6-v0"
 # train_env_name: "MiniGrid-FourRooms-v0"
-test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
+test_env_name: "MiniGrid-Empty-16x16-v0"
 
 ans_random: 0
 
 undefined_error_reward: 0
 syntax_error_reward: -0.2
-defined_q_reward: 0
+defined_q_reward: 0.2
 defined_q_reward_test : 0
 
 pre_trained_lstm: True
@@ -44,4 +44,4 @@ use_seed: False
 exp_mem: True
 baseline: False
 wandb: True
-notes: "ans random test"
+notes: "Empty grid with embeddings"

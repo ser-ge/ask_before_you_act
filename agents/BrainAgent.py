@@ -37,16 +37,16 @@ class Agent:
 
     def ask(self, observation, hidden_hist_mem):
         observation = torch.FloatTensor(observation).to(device)
-        tokens, hidden_q, log_probs_qa, entropy_qa = self.model.gen_question(observation, hidden_hist_mem)
+        tokens, hidden_q, log_probs_qa, entropy_qa, q_embedding = self.model.gen_question(observation, hidden_hist_mem)
         output = ' '.join(tokens)
-        return output, hidden_q, log_probs_qa, entropy_qa
+        return output, hidden_q, log_probs_qa, entropy_qa, q_embedding
 
-    def act(self, observation, ans, hidden_q, hidden_hist):
+    def act(self, observation, ans, hidden_q, hidden_hist, q_embedding):
         # Calculate policy
         _ = hidden_hist # does nothing, just accepts
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
-        logits = self.model.policy(observation, ans, hidden_q)
+        logits = self.model.policy(observation, ans, hidden_q, q_embedding)
         # does nothing, just accepts
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
@@ -61,15 +61,17 @@ class Agent:
 
         state, answer, hidden_q, action, reward, reward_qa, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, \
-        done, hidden_hist_mem, cell_hist_mem = current_trans
+        done, hidden_hist_mem, cell_hist_mem, q_embedding = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
 
+        *_, next_q_embedding = next_trans
+
         # Get current V
-        V_pred = self.model.value(state, answer, hidden_q).squeeze()
+        V_pred = self.model.value(state, answer, hidden_q, q_embedding).squeeze()
 
         # Get next V
-        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q).squeeze()
+        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_q_embedding).squeeze()
 
         # Compute TD error
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
@@ -158,10 +160,11 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
+        q_embedding = torch.stack(trans.q_embedding)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem)
+                done,  hidden_hist_mem, cell_hist_mem, q_embedding)
 
 
 class AgentMem(Agent):
@@ -180,7 +183,7 @@ class AgentMem(Agent):
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
 
-    def act(self, observation, ans, hidden_q, hidden_hist_mem):
+    def act(self, observation, ans, hidden_q, hidden_hist_mem, q_embedding):
         # Calculate policy
 
         # note, act doesn't actually USE hidden_hist_mem here
@@ -189,7 +192,7 @@ class AgentMem(Agent):
 
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
-        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem)
+        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem, q_embedding)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
@@ -197,14 +200,14 @@ class AgentMem(Agent):
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
-    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q):
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, q_embedding):
         # hidden_hist_mem will be a placeholder here, passed to the policy,
         # but then subsequently ignored by the policy, if we have initialised it to YES use
         # memory, but not explicitly into the policy...
 
         hidden_hist_mem = torch.zeros(128)
 
-        logits = self.model.policy(state, answer, hidden_q, hidden_hist_mem)
+        logits = self.model.policy(state, answer, hidden_q, hidden_hist_mem, q_embedding)
         probs = F.softmax(logits, dim=-1)
         pi_a = probs.squeeze(1).gather(1, action.long())
         ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
@@ -223,11 +226,12 @@ class AgentExpMem(Agent):
 
         self.action_memory = True
 
-    def act(self, observation, ans, hidden_q, hidden_hist_mem):
+    def act(self, observation, ans, hidden_q, hidden_hist_mem, q_embedding):
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
-        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem)
+        q_embedding = q_embedding.unsqueeze(0)
+        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem, q_embedding)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
@@ -239,17 +243,17 @@ class AgentExpMem(Agent):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem, q_embedding  = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
-        *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
+        *_ , next_hidden_hist_mem, cell_hist_mem, next_q_embedding = next_trans
 
         # Get next V
         # Get current V
-        V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem).squeeze()
+        V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem, q_embedding).squeeze()
 
         # Get next V
-        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem).squeeze()
+        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem, next_q_embedding).squeeze()
 
         # Compute TD error
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
@@ -260,7 +264,7 @@ class AgentExpMem(Agent):
 
         # Clipped PPO Policy Loss
         # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
-        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem)
+        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem, q_embedding)
 
         # Entropy regularizer
         L_entropy = self.entropy_act_param * entropy_act.detach().mean()
@@ -284,8 +288,8 @@ class AgentExpMem(Agent):
 
         return total_loss.item(), (L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa)
 
-    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist):
-        logits = self.model.policy(state, answer, hidden_q,hidden_hist)
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist, q_embedding):
+        logits = self.model.policy(state, answer, hidden_q,hidden_hist, q_embedding)
         # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
         probs = F.softmax(logits, dim=-1)
         pi_a = probs.squeeze(1).gather(1, action.long())
