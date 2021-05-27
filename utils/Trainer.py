@@ -80,9 +80,10 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             action, log_prob_act, entropy_act, action_prob = agent.act(state, answer, hidden_q, hist_mem[0])
 
             # TODO - extract method for mutual info crap
-            # t0 = time.time()
+
             total_prob = 0
             for _ in range(10):
+                t0 = time.time()
                 words_MI = []
                 log_prob_qa_MI = 0
                 for tkn_dist in tkn_dists_qa:
@@ -90,17 +91,19 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                     word_MI = agent.model.question_rnn.dataset.index_to_word[tkn_idx_MI.item()]
                     words_MI.append(word_MI)
                     log_prob_qa_MI += torch.distributions.Categorical(tkn_dist).log_prob(tkn_idx_MI)
+                t1 = time.time()
                 question_MI = ' '.join(words_MI[:-1])
                 answer_MI, _ = env.answer(question_MI)
                 answer_MI = answer_MI.encode()
                 action_MI, _, entropy_act_MI, action_prob_MI = agent.act(state, answer_MI, hidden_q, hist_mem[0])
-
                 total_prob += action_prob_MI * torch.exp(log_prob_qa_MI)
-
+                t2 = time.time()
+                print(t1 - t0)
+                print(t2 - t1)
             entropy_act_marginal = torch.distributions.Categorical(total_prob).entropy().item()
             mutual_info = entropy_act_marginal - entropy_act_MI
-            # t1 = time.time()
-            # print(t1-t0)
+
+
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also
