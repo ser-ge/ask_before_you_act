@@ -8,10 +8,10 @@ word_embed_dims: 128
 drop_out_prob: 0
 hidden_dim: 32
 
-lr: 0.0001
+lr: 0.0005
 gamma: 0.99
 lmbda: 0.95
-clip: 0.1
+clip: 0.2
 entropy_act_param: 0.1
 value_param: 1
 
@@ -20,14 +20,14 @@ advantage_qa_param: 0.25
 entropy_qa_param: 0.2
 
 train_episodes: 6000
-test_episodes: 0
+test_episodes: 6000
 
 train_log_interval: 250
 test_log_interval: 250
 log_questions: True
 
-train_env_name: "MiniGrid-DoorKey-5x5-v0"
-test_env_name: "MiniGrid-DoorKey-6x6-v0"
+train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
 
 ans_random: 0
 
@@ -44,4 +44,4 @@ exp_mem: True
 baseline: False
 film: True
 wandb: True
-notes: "film testing, Four Rooms lower lr and changed clip"
+notes: "film ans random test"
