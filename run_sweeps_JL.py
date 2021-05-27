@@ -24,9 +24,14 @@ from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
 
 from language_model import Dataset, Model as QuestionRNN
+from oracle.generator import gen_phrases
+from typing import Callable
 from dataclasses import dataclass, asdict
 
 import wandb
+
+import matplotlib.pyplot as plt
+import pandas as pd
 
 @dataclass
 class Config:
@@ -37,6 +42,7 @@ class Config:
     lstm_size: int = 128
     word_embed_dims: int = 128
     drop_out_prob: float = 0
+    gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
     lr: float = 0.0005
     gamma: float = 0.99
@@ -45,18 +51,18 @@ class Config:
     entropy_act_param: float = 0.05
     value_param: float = 1
     policy_qa_param: float = 0.25
-    advantage_qa_param: float = 0.25
-    entropy_qa_param: float = 0.05
-    train_episodes: float = 10000
+    advantage_qa_param: float = 0.5
+    entropy_qa_param: float = 0.5
+    train_episodes: float = 5000
     test_episodes: float = 5000
-    train_log_interval: float = 250
+    train_log_interval: float = 100
     test_log_interval: float = 100
-    train_env_name: str = "MiniGrid-MultiRoom-N2-S4-v0"
+    train_env_name: str = "MiniGrid-Empty-8x8-v0"
     test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
     # "MiniGrid-KeyCorridorS3R1-v0"
     ans_random: float = 0
-    undefined_error_reward: float = 0
+    undefined_error_reward: float = 0.0
     syntax_error_reward: float = -0.2
     defined_q_reward: float = 0.2
     pre_trained_lstm: bool = True
@@ -145,9 +151,6 @@ class Logger:
         pass
 
 def plot_experiment(means, stds, total_runs, window=25):
-    import matplotlib.pyplot as plt
-    import pandas as pd
-
     fig, axs = plt.subplots(2, 1)
     if len(means) == 2:  # Baseline
         mu_train_baseline = np.array((window - 1) * [0] + pd.Series(means[0]).rolling(window).mean().to_list()[window - 1:])
@@ -338,10 +341,12 @@ def run_experiment(cfg=default_config):
     agent = set_up_agent(cfg, question_rnn)
 
     # Train
+    print(f"------------------------------ Train ------------------------------")
     train_reward = train_test(env_train, agent, cfg, logger, n_episodes=cfg.train_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
     # Test
+    print(f"------------------------------ Test ------------------------------")
     test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True)
 
@@ -351,16 +356,14 @@ def run_experiment(cfg=default_config):
     if USE_WANDB:run.finish()
     return train_reward, test_reward
 
-def run_curriculum(total_runs = 3, window = 3):
-    global default_config
+def run_curriculum(baseline_config, model_config, total_runs = 3, window = 3):
     train_hist_baseline = []
     test_hist_baseline = []
     train_hist_model = []
     test_hist_model = []
     for runs in range(total_runs):
         print(f"====================== Run: {1+runs:d} || Agent: Baseline ======================")
-        default_config.baseline = True
-        train_reward_baseline, test_reward_baseline = run_experiment(cfg=default_config)
+        train_reward_baseline, test_reward_baseline = run_experiment(cfg=baseline_config)
         train_hist_baseline.append(train_reward_baseline)
         test_hist_baseline.append(test_reward_baseline)
 
@@ -376,8 +379,7 @@ def run_curriculum(total_runs = 3, window = 3):
 
     for runs in range(total_runs):
         print(f"====================== Run: {1+runs:d} || Agent: Model ======================")
-        default_config.baseline = False
-        train_reward_model, test_reward_model = run_experiment(cfg=default_config)
+        train_reward_model, test_reward_model = run_experiment(cfg=model_config)
         train_hist_model.append(train_reward_model)
         test_hist_model.append(test_reward_model)
 
@@ -394,13 +396,32 @@ def run_curriculum(total_runs = 3, window = 3):
 
     save_path = Path('./data') / Path('run_results_' + str(time.asctime()) + '.p')
     configs = asdict(default_config)
-    experiments = {'config': configs, 'train_rewards_baseline': [], 'test_rewards_baseline': [],
-                   'train_rewards_model': [], 'test_rewards_model': []}
+    experiments = {'config': configs, 'train_rewards_baseline': train_hist_baseline,
+                   'test_rewards_baseline': test_hist_baseline,
+                   'train_rewards_model': train_hist_model,
+                   'test_rewards_model': test_hist_model}
 
     pickle.dump(experiments, open(save_path, 'wb'))
     print(f"Run results saved to {save_path}")
 
 
 if __name__ == "__main__":
-    run_curriculum(total_runs=3, window=25)
-    # run_experiments()
+    # Curriculum
+    # model_config, baseline_config = default_config, default_config
+    # baseline_config.baseline = True
+    # model_config.baseline = False
+    # run_curriculum(baseline_config, model_config, total_runs=3, window=25)
+    default_config.baseline = False
+    train_reward, test_reward = run_experiment(default_config)
+
+    window = 25
+    avg_train_reward = np.array((window - 1) * [0] + pd.Series(train_reward).rolling(window).mean().to_list()[window - 1:])
+    avg_test_reward = np.array((window - 1) * [0] + pd.Series(test_reward).rolling(window).mean().to_list()[window - 1:])
+    fig, axs = plt.subplots(1, 1)
+    axs.set_title(f"Reward curves")
+    axs.plot(avg_train_reward, label="Train")
+    axs.plot(avg_test_reward, label="Test")
+    axs.set_xlabel("Episodes")
+    axs.set_ylabel("Reward")
+    axs.legend()
+    plt.show()
