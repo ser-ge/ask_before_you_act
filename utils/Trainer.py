@@ -73,13 +73,13 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
-            # if episode % log_interval == 0:
-                # print([question, str(answer), reward_qa])
+            if episode % log_interval == 0:
+                print([question, str(answer), reward_qa])
 
             # Act
             action, log_prob_act, entropy_act, action_prob = agent.act(state, answer, hidden_q, hist_mem[0])
 
-            mutual_info =  entropy_loss(env,agent,state,hidden_q,hist_mem,tkn_dists_qa,samples=10,lazy=True)
+            mutual_info = entropy_loss(env,agent,state,hidden_q,hist_mem,tkn_dists_qa,samples=1000,lazy=True)
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also
@@ -240,6 +240,7 @@ def entropy_loss(env,agent,state,hidden_q,hist_mem,tkn_dists_qa,samples=100,verb
         return torch.zeros(1).squeeze()
 
     for _ in range(samples):
+
         t0 = time.time()
         words_MI = []
         log_prob_qa_MI = 0
@@ -259,6 +260,7 @@ def entropy_loss(env,agent,state,hidden_q,hist_mem,tkn_dists_qa,samples=100,verb
             print('time first loop',t1 - t0)
             print('time second loop',t2 - t1)
             print('total time',t2-t0)
+
     entropy_act_marginal = torch.distributions.Categorical(total_prob).entropy().item()
     mutual_info = entropy_act_marginal - entropy_act_MI
     return mutual_info

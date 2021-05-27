@@ -40,6 +40,7 @@ class BaselineAgent:
         entropy = dist.entropy()  # Entropy regularizer
         return action.detach().item(), probs, entropy
 
+
     def update(self):
         current_trans, next_trans = self.get_batch()
 

@@ -37,9 +37,9 @@ class Agent:
 
     def ask(self, observation, hidden_hist_mem):
         observation = torch.FloatTensor(observation).to(device)
-        tokens, hidden_q, log_probs_qa, entropy_qa = self.model.gen_question(observation, hidden_hist_mem)
+        tokens, hidden_q, log_probs_qa, entropy_qa, tkn_dists_qa = self.model.gen_question(observation, hidden_hist_mem)
         output = ' '.join(tokens)
-        return output, hidden_q, log_probs_qa, entropy_qa
+        return output, hidden_q, log_probs_qa, entropy_qa, tkn_dists_qa
 
     def act(self, observation, ans, hidden_q, hidden_hist):
         # Calculate policy
@@ -158,10 +158,11 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
+        mutual_info = torch.stack(trans.mutual_info)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem)
+                done,  hidden_hist_mem, cell_hist_mem, mutual_info)
 
 
 class AgentMem(Agent):
@@ -233,13 +234,13 @@ class AgentExpMem(Agent):
         action = dist.sample()
         probs = action_prob[action]  # Policy log prob
         entropy = dist.entropy()  # Entropy regularizer
-        return action.detach().item(), probs, entropy
+        return action.detach().item(), probs, entropy, action_prob
 
     def update(self):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem, mutual_info  = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
         *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
@@ -272,7 +273,8 @@ class AgentExpMem(Agent):
         L_policy_qa = ((self.policy_qa_param * reward_qa +
                         self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
-        L_qa = (L_policy_qa + L_entropy_qa).to(device)
+        L_mi = mutual_info.mean()
+        L_qa = (L_policy_qa + L_entropy_qa + L_mi).to(device)
 
         # Total loss
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
