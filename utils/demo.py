@@ -20,6 +20,8 @@ def show_video():
 
 def wrap_env_video_monitor(env):
     env = Monitor(env, './video', force=True)
+    env.metadata['video.frames_per_second'] = 1
+    env.metadata['video.output_frames_per_second'] = 1
     return env
 
 import IPython
