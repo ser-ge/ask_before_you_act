@@ -240,14 +240,14 @@ def show_question_input(env):
         description='Question:',
         disabled=False
     )
-    display(question_input)
+    display.display(question_input)
 
     def on_ask(wdgt):
         question = wdgt.value
         question_n = question.replace('?', '').lower()
-        display(wdgt.value)
+        display.display(wdgt.value)
         answer, reward_qa = env.answer(question_n)
-        display(str(answer))
+        display.display(str(answer))
 
     question_input.on_submit(on_ask)
 
