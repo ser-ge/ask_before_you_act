@@ -3,7 +3,8 @@ import numpy as np
 from language_model import Dataset, Model as QuestionRNN
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
-from utils import default_config, load_agent, save_agent, set_up_agent
+from utils import default_config
+from utils.agent import load_agent, save_agent, set_up_agent
 import wandb
 import random
 import gym
