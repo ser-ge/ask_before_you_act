@@ -105,7 +105,11 @@ sweep_config = {
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" : dict() }
+    "parameters" : {
+    "ans_random" : {
+        "values" : [1, 0]
+        }
+    }}
 
 
 
