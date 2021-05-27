@@ -7,6 +7,8 @@ from IPython import display
 from IPython.core.display import HTML
 from IPython.display import Javascript
 import json
+from ipywidgets import interact, widgets
+import matplotlib.pyplot as plt
 
 
 def show_video():
@@ -22,11 +24,13 @@ def show_video():
     else:
         print("Could not find video")
 
+
 def wrap_env_video_monitor(env):
     env = Monitor(env, './video', force=True)
     env.metadata['video.frames_per_second'] = 1
     env.metadata['video.output_frames_per_second'] = 1
     return env
+
 
 def show_qa(questions, answers):
     display.display(
@@ -227,3 +231,43 @@ def show_qa(questions, answers):
       }
       run()
     ''' % json.dumps([questions, answers])))
+
+
+def show_question_input(env):
+    question_input = widgets.Text(
+        value='Green goal is north?',
+        placeholder='Green goal is north?',
+        description='Question:',
+        disabled=False
+    )
+    display(question_input)
+
+    def on_ask(wdgt):
+        question = wdgt.value
+        question_n = question.replace('?', '').lower()
+        display(wdgt.value)
+        answer, reward_qa = env.answer(question_n)
+        display(str(answer))
+
+    question_input.on_submit(on_ask)
+
+
+def render_env(env, step=0):
+    plt.figure(1, figsize=(8, 8))
+    plt.clf()
+    plt.axis('off')
+    plt.imshow(env.render(mode='rgb_array'))
+    # pause for plots to update
+    display.display(plt.gcf())
+    display.clear_output(wait=True)
+    plt.pause(0.0001)
+
+    display.display(
+        HTML(
+            """
+        <style>
+          .output_image>img {
+            background: inherit;
+          }
+          </style>
+      """))
