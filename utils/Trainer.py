@@ -69,7 +69,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
             # Act
-            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
+            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0], q_embeding)
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also

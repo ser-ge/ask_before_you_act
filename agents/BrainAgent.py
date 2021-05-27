@@ -158,10 +158,11 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
+        q_embeding = torch.cat(q_embeding)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem)
+                done,  hidden_hist_mem, cell_hist_mem, q_embeding)
 
 
 class AgentMem(Agent):
@@ -223,11 +224,12 @@ class AgentExpMem(Agent):
 
         self.action_memory = True
 
-    def act(self, observation, ans, hidden_q, hidden_hist_mem):
+    def act(self, observation, ans, hidden_q, hidden_hist_mem, q_embeding):
+        breakpoint()
         # Calculate policy
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
-        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem)
+        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem, q_embeding)
         action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
         dist = distributions.Categorical(action_prob)
         action = dist.sample()
@@ -239,19 +241,19 @@ class AgentExpMem(Agent):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem, q_embeding  = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
-        *_ , next_hidden_hist_mem, cell_hist_mem  = next_trans
+        *_ , next_hidden_hist_mem, cell_hist_mem, next_q_embedding  = next_trans
 
         # Get current V
 
         # Get next V
         # Get current V
-        V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem).squeeze()
+        V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem, q_embeding).squeeze()
 
         # Get next V
-        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem).squeeze()
+        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem, next_q_embedding).squeeze()
 
         # Compute TD error
         target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)

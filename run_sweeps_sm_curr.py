@@ -62,8 +62,8 @@ class Config:
     test_log_interval: float = 1
     log_questions: bool = False
 
-    train_env_name: str =  "MiniGrid-MultiRoom-N2-S4-v0"
-    test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
+    train_env_name: str =  "MiniGrid-FourRooms-v0"
+    test_env_name: str = "MiniGrid-FourRooms-v0"
 
     ans_random: float = 0
 
@@ -104,11 +104,11 @@ device = "cpu"
 
 
 sweep_config = {
-    "name" : f"Sweep: baseline: {yaml_config.baseline}, env: {yaml_config.test_env_name}",
+        "name" : f"Sweep: baseline: {yaml_config.baseline}, film : {yaml_config.film} env: {yaml_config.train_env_name}",
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" :{
+    "parameters" :
         dict() }
 
 
@@ -120,6 +120,9 @@ def run_sweep(configs=sweep_config):
     sweep_id = wandb.sweep(configs, project="ask_before_you_act")
     wandb.agent(sweep_id, function=run_experiment)
 
+class Logger:
+    def log(self, *args):
+        pass
 
 def run_experiment(cfg=yaml_config):
     dataset = Dataset(cfg)
@@ -130,7 +133,6 @@ def run_experiment(cfg=yaml_config):
         logger = wandb
         cfg = wandb.config
     else:
-        from run_sweeps_JL import Logger
         logger = Logger()
 
     if cfg.pre_trained_lstm:
