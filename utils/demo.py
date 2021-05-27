@@ -2,12 +2,12 @@ import base64
 import glob
 import io
 from IPython.display import HTML
-from IPython.display import display
 from gym.wrappers import Monitor
 from IPython import display
 from IPython.core.display import HTML
 from IPython.display import Javascript
 import json
+
 
 def show_video():
     mp4list = glob.glob('video/*.mp4')
@@ -29,161 +29,161 @@ def wrap_env_video_monitor(env):
     return env
 
 def show_qa(questions, answers):
-
-  display(HTML("""
-      <style>
-        video::-webkit-media-controls {
-        display: none;
-      }
-    
-      .imessage {
-      border-radius: 0.25rem;
-      display: flex;
-      flex-direction: column;
-      font-family: "SanFrancisco";
-      font-size: 1.1rem;
-      /* margin: 0 auto 1rem; */
-      max-width: 230px;
-      padding: 0.5rem 1.5rem;
-    }
-    
-    .imessage p {
-      border-radius: 1.15rem;
-      line-height: 1.25;
-      max-width: 75%;
-      padding: 0.5rem .875rem !important;
-      position: relative;
-      word-wrap: break-word;
-    }
-    
-    .imessage p::before,
-    .imessage p::after {
-      bottom: -0.1rem;
-      content: "";
-      height: 1rem;
-      position: absolute;
-    }
-    
-    p.from-me {
-      align-self: flex-end;
-      background-color: #248bf5;
-      color: #fff; 
-    }
-    
-    p.from-me::before {
-      border-bottom-left-radius: 0.8rem 0.7rem;
-      border-right: 1rem solid #248bf5;
-      right: -0.35rem;
-      transform: translate(0, -0.1rem);
-    }
-    
-    p.from-me::after {
-      background-color: #383838;
-      border-bottom-left-radius: 0.5rem;
-      right: -40px;
-      transform:translate(-30px, -2px);
-      width: 10px;
-    }
-    
-    p[class^="from-"] {
-      margin: 0.5rem 0;
-      width: fit-content;
-    }
-    
-    p:first-letter{
-      text-transform: capitalize
-    }
-    
-    p.from-me ~ p.from-me {
-      margin: 0.25rem 0 0;
-    }
-    
-    p.from-me ~ p.from-me:not(:last-child) {
-      margin: 0.25rem 0 0;
-    }
-    
-    p.from-me ~ p.from-me:last-child {
-      margin-bottom: 0.5rem;
-    }
-    
-    p.from-them {
-      align-items: flex-start;
-      background-color: #e5e5ea;
-      color: #000;
-    }
-    
-    p.from-them:before {
-      border-bottom-right-radius: 0.8rem 0.7rem;
-      border-left: 1rem solid #e5e5ea;
-      left: -0.35rem;
-      transform: translate(0, -0.1rem);
-    }
-    
-    p.from-them::after {
-      background-color: #383838;
-      border-bottom-right-radius: 0.5rem;
-      left: 20px;
-      transform: translate(-30px, -2px);
-      width: 10px;
-    }
-    
-    .no-tail::before {
-      display: none;
-    }
-    
-    /* general styling */
-    @font-face {
-      font-family: "SanFrancisco";
-      src:
-        url("https://cdn.rawgit.com/AllThingsSmitty/fonts/25983b71/SanFrancisco/sanfranciscodisplay-regular-webfont.woff2") format("woff2"),
-        url("https://cdn.rawgit.com/AllThingsSmitty/fonts/25983b71/SanFrancisco/sanfranciscodisplay-regular-webfont.woff") format("woff");
-    }
-    
-    body {  
-      font-family: -apple-system, 
-        BlinkMacSystemFont, 
-        "Segoe UI", 
-        Roboto, 
-        Oxygen-Sans, 
-        Ubuntu, 
-        Cantarell, 
-        "Helvetica Neue", 
-        sans-serif;
-      font-weight: normal;
-      margin: 0;
-    }
-    
-    @media screen and (max-width: 800px) {
-      body {
-        margin: 0 0.5rem;
-      }
-    
-      .imessage {
-        font-size: 1.05rem;
-        margin: 0 auto 1rem;
-        max-width: 600px;
-        padding: 0.25rem 0.875rem;
-      }
-    
-      .imessage p {
-        margin: 0.5rem 0;
-      }
-    
-    }
-    
-    .container {
-            width: 100%;
-            overflow-y: scroll;
-            /* padding-top: 20px;
-            padding-left: 40px; */
-            height: 400px;
-            scrollbar-color: black;
+    display.display(
+        HTML(
+            """
+          <style>
+            video::-webkit-media-controls {
+            display: none;
           }
-      </style>
+        
+          .imessage {
+          border-radius: 0.25rem;
+          display: flex;
+          flex-direction: column;
+          font-family: "SanFrancisco";
+          font-size: 1.1rem;
+          /* margin: 0 auto 1rem; */
+          max-width: 230px;
+          padding: 0.5rem 1.5rem;
+        }
+        
+        .imessage p {
+          border-radius: 1.15rem;
+          line-height: 1.25;
+          max-width: 75%;
+          padding: 0.5rem .875rem !important;
+          position: relative;
+          word-wrap: break-word;
+        }
+        
+        .imessage p::before,
+        .imessage p::after {
+          bottom: -0.1rem;
+          content: "";
+          height: 1rem;
+          position: absolute;
+        }
+        
+        p.from-me {
+          align-self: flex-end;
+          background-color: #248bf5;
+          color: #fff; 
+        }
+        
+        p.from-me::before {
+          border-bottom-left-radius: 0.8rem 0.7rem;
+          border-right: 1rem solid #248bf5;
+          right: -0.35rem;
+          transform: translate(0, -0.1rem);
+        }
+        
+        p.from-me::after {
+          background-color: #383838;
+          border-bottom-left-radius: 0.5rem;
+          right: -40px;
+          transform:translate(-30px, -2px);
+          width: 10px;
+        }
+        
+        p[class^="from-"] {
+          margin: 0.5rem 0;
+          width: fit-content;
+        }
+        
+        p:first-letter{
+          text-transform: capitalize
+        }
+        
+        p.from-me ~ p.from-me {
+          margin: 0.25rem 0 0;
+        }
+        
+        p.from-me ~ p.from-me:not(:last-child) {
+          margin: 0.25rem 0 0;
+        }
+        
+        p.from-me ~ p.from-me:last-child {
+          margin-bottom: 0.5rem;
+        }
+        
+        p.from-them {
+          align-items: flex-start;
+          background-color: #e5e5ea;
+          color: #000;
+        }
+        
+        p.from-them:before {
+          border-bottom-right-radius: 0.8rem 0.7rem;
+          border-left: 1rem solid #e5e5ea;
+          left: -0.35rem;
+          transform: translate(0, -0.1rem);
+        }
+        
+        p.from-them::after {
+          background-color: #383838;
+          border-bottom-right-radius: 0.5rem;
+          left: 20px;
+          transform: translate(-30px, -2px);
+          width: 10px;
+        }
+        
+        .no-tail::before {
+          display: none;
+        }
+        
+        /* general styling */
+        @font-face {
+          font-family: "SanFrancisco";
+          src:
+            url("https://cdn.rawgit.com/AllThingsSmitty/fonts/25983b71/SanFrancisco/sanfranciscodisplay-regular-webfont.woff2") format("woff2"),
+            url("https://cdn.rawgit.com/AllThingsSmitty/fonts/25983b71/SanFrancisco/sanfranciscodisplay-regular-webfont.woff") format("woff");
+        }
+        
+        body {  
+          font-family: -apple-system, 
+            BlinkMacSystemFont, 
+            "Segoe UI", 
+            Roboto, 
+            Oxygen-Sans, 
+            Ubuntu, 
+            Cantarell, 
+            "Helvetica Neue", 
+            sans-serif;
+          font-weight: normal;
+          margin: 0;
+        }
+        
+        @media screen and (max-width: 800px) {
+          body {
+            margin: 0 0.5rem;
+          }
+        
+          .imessage {
+            font-size: 1.05rem;
+            margin: 0 auto 1rem;
+            max-width: 600px;
+            padding: 0.25rem 0.875rem;
+          }
+        
+          .imessage p {
+            margin: 0.5rem 0;
+          }
+        
+        }
+        
+        .container {
+                width: 100%;
+                overflow-y: scroll;
+                /* padding-top: 20px;
+                padding-left: 40px; */
+                height: 400px;
+                scrollbar-color: black;
+              }
+          </style>
   """))
 
-  display(Javascript('''
-
+    display.display(Javascript('''
       async function run() {
         qa = (%s)
         answers = qa[1]
@@ -226,5 +226,4 @@ def show_qa(questions, answers):
         }
       }
       run()
-    '''% json.dumps([questions, answers])))
-
+    ''' % json.dumps([questions, answers])))
