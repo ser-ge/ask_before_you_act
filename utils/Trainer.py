@@ -59,6 +59,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
 
+            # TODO - stop grad through QA hidden state to avoid loopy shit
+            # hidden_q = hidden_q.detach()
+
             # Logging
             episode_qa_reward.append(reward_qa)
             qa_pairs.append([question, str(answer), reward_qa])  # Storing
@@ -66,6 +69,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             # Answer
             answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
+
+            # if episode % log_interval == 0:
+            #     print([question, str(answer), reward_qa])
 
             # Act
             action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
@@ -101,11 +107,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         if done:
 
             # Update
-            if train:
+            if train and len(agent.data) >=2:
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
             else:
-                episode_loss, losses_tuple = (0, (0, 0, 0, None, None))
+                episode_loss, losses_tuple = (0, (0, 0, 0,0, 0))
                 # for further info on the above looks like jank, please see the update function on the agents
 
             # Reset episode
@@ -133,6 +139,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                     avg_R = np.mean(reward_history[-log_interval:])
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}, "
                           f"EPS: {log_interval / (current_time - last_time):.1f} ")
+                    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 avg_syntax_r = 0
                 last_time = current_time
 
