@@ -24,11 +24,11 @@ from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
 
 from language_model import Dataset, Model as QuestionRNN
-from oracle.generator import gen_phrases
-from typing import Callable
 from dataclasses import dataclass, asdict
 
 import wandb
+from utils.storage import save_agent
+
 
 @dataclass
 class Config:
@@ -39,7 +39,6 @@ class Config:
     lstm_size: int = 128
     word_embed_dims: int = 128
     drop_out_prob: float = 0
-    gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
     lr: float = 0.001
     gamma: float = 0.99
@@ -50,7 +49,7 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
     entropy_qa_param: float = 0.05
-    train_episodes: float = 5000
+    train_episodes: float = 100
     test_episodes: float = 10
     train_log_interval: float = 5
     test_log_interval: float = 1
@@ -66,6 +65,7 @@ class Config:
     use_mem: bool = True
     exp_mem: bool = True
     baseline: bool = False
+    wandb: bool = False
 
 default_config = Config()
 
@@ -257,6 +257,8 @@ def run_experiment(cfg=default_config):
 
     test_reward = train_test(env, agent, cfg, logger, n_episodes=cfg.test_episodes,
                               log_interval=cfg.test_log_interval, train=False, verbose=True)
+
+    save_agent(agent, cfg, 'agent')
 
     if USE_WANDB:run.finish()
     return train_reward, test_reward

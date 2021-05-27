@@ -27,13 +27,14 @@ test_log_interval: 250
 log_questions: True
 
 train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+# train_env_name: "MiniGrid-FourRooms-v0"
 test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
 
 ans_random: 0
 
 undefined_error_reward: 0
 syntax_error_reward: -0.2
-defined_q_reward: 0.2
+defined_q_reward: 0
 defined_q_reward_test : 0
 
 pre_trained_lstm: True

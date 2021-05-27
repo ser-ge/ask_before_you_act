@@ -42,7 +42,6 @@ class Config:
     lstm_size: int = 128
     word_embed_dims: int = 128
     drop_out_prob: float = 0
-    gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
 
     lr: float = 0.0005
@@ -110,8 +109,7 @@ sweep_config = {
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
     "parameters" :{
-        "ans_random" : {"values" : [0, 1]}}}
-        # dict()
+        dict() }
 
 
 
