@@ -4,7 +4,7 @@ import io
 from IPython.display import HTML
 from IPython import display
 from gym.wrappers import Monitor
-import IPython
+from IPython import display
 from IPython.core.display import HTML
 from IPython.display import Javascript
 import json
