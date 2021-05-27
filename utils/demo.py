@@ -2,7 +2,7 @@ import base64
 import glob
 import io
 from IPython.display import HTML
-from IPython import display
+from IPython.display import display
 from gym.wrappers import Monitor
 from IPython import display
 from IPython.core.display import HTML
