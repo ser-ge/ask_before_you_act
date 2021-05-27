@@ -23,6 +23,7 @@ Transition = namedtuple(
         "done",
         "hidden_hist_mem",
         "cell_hist_mem",
+        "mutual_info"
     ],
 )
 
@@ -54,6 +55,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             answer, reward_qa, entropy_qa = (1, 0, 1)
             log_prob_qa = 6 * [torch.Tensor([1])]
             hidden_q = torch.ones(128)
+            mi = 0
 
         else:
             # Ask
@@ -77,10 +79,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             # Act
             action, log_prob_act, entropy_act, action_prob = agent.act(state, answer, hidden_q, hist_mem[0])
 
-            # TODO - add mutual info crap
-            t0 = time.time()
+            # TODO - extract method for mutual info crap
+
             total_prob = 0
-            for _ in range(1000):
+            for _ in range(10):
+                t0 = time.time()
                 words_MI = []
                 log_prob_qa_MI = 0
                 for tkn_dist in tkn_dists_qa:
@@ -88,18 +91,18 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                     word_MI = agent.model.question_rnn.dataset.index_to_word[tkn_idx_MI.item()]
                     words_MI.append(word_MI)
                     log_prob_qa_MI += torch.distributions.Categorical(tkn_dist).log_prob(tkn_idx_MI)
+                t1 = time.time()
                 question_MI = ' '.join(words_MI[:-1])
                 answer_MI, _ = env.answer(question_MI)
                 answer_MI = answer_MI.encode()
                 action_MI, _, entropy_act_MI, action_prob_MI = agent.act(state, answer_MI, hidden_q, hist_mem[0])
-
                 total_prob += action_prob_MI * torch.exp(log_prob_qa_MI)
-
+                t2 = time.time()
+                print(t1 - t0)
+                print(t2 - t1)
             entropy_act_marginal = torch.distributions.Categorical(total_prob).entropy().item()
-            mi = entropy_act_marginal - entropy_act_MI
-            t1 = time.time()
+            mutual_info = entropy_act_marginal - entropy_act_MI
 
-            print(t1-t0)
 
 
         # Remember
@@ -118,7 +121,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         # Store
         t = Transition(state, answer, hidden_q, action, reward, reward_qa,
                        log_prob_act.item(), log_prob_qa, entropy_act.item(), entropy_qa, done,
-                       hist_mem[0], hist_mem[1])
+                       hist_mem[0], hist_mem[1], mutual_info)
 
         agent.store(t)
 
