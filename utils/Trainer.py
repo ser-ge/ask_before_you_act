@@ -54,6 +54,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             answer, reward_qa, entropy_qa = (1, 0, 1)
             log_prob_qa = 6 * [torch.Tensor([1])]
             hidden_q = torch.ones(128)
+            q_embedding = torch.ones(128)
 
         else:
             # Ask
