@@ -59,6 +59,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             question, hidden_q, log_prob_qa, entropy_qa = agent.ask(state, hist_mem[0])
             answer, reward_qa = env.answer(question)
 
+            # TODO - stop grad through QA hidden state to avoid loopy shit
+            hidden_q = hidden_q.detach()
+
             # Logging
             episode_qa_reward.append(reward_qa)
             qa_pairs.append([question, str(answer), reward_qa])  # Storing

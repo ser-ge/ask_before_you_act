@@ -55,8 +55,8 @@ class Config:
     entropy_qa_param: float = 0.5
     train_episodes: float = 5000
     test_episodes: float = 5000
-    train_log_interval: float = 100
-    test_log_interval: float = 100
+    train_log_interval: float = 5
+    test_log_interval: float = 5
     train_env_name: str = "MiniGrid-Empty-8x8-v0"
     test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
     # "MiniGrid-MultiRoom-N2-S4-v0", "MiniGrid-MultiRoom-N4-S5-v0" "MiniGrid-Empty-8x8-v0"
