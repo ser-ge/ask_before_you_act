@@ -64,7 +64,7 @@ class Config:
     ans_random: float = 0
     undefined_error_reward: float = 0.0
     syntax_error_reward: float = -0.2
-    defined_q_reward: float = 0.0
+    defined_q_reward: float = 0.2
     pre_trained_lstm: bool = True
     use_seed: bool = False
     seed: int = 1

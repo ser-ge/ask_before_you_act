@@ -143,7 +143,6 @@ class Agent:
         self.data = []
         return current_trans, next_trans
 
-
     def transition_to_tensors(self, trans):
         state = torch.FloatTensor(trans.state).to(device)
         answer = torch.FloatTensor(trans.answer).to(device)
@@ -159,10 +158,11 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
+        mutual_info = torch.stack(trans.mutual_info)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem)
+                done,  hidden_hist_mem, cell_hist_mem, mutual_info)
 
 
 class AgentMem(Agent):
@@ -241,7 +241,7 @@ class AgentExpMem(Agent):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem, mutual_info = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
         *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
@@ -272,7 +272,7 @@ class AgentExpMem(Agent):
         # Q&A Loss
         # L_policy_qa = ((self.policy_qa_param * reward_qa
         #                 + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
-        adv = self.advantage_qa_param * next_V_pred.detach()
+        adv = self.advantage_qa_param * (next_V_pred + mutual_info).detach()
         L_policy_qa = ((self.policy_qa_param * reward_qa + adv) * log_prob_qa).mean()
         # L_policy_qa = (reward_qa * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
