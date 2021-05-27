@@ -37,13 +37,13 @@ class Agent:
 
     def ask(self, observation, hidden_hist_mem):
         observation = torch.FloatTensor(observation).to(device)
-        tokens, hidden_q, log_probs_qa, entropy_qa, tkn_dists_qa = self.model.gen_question(observation, hidden_hist_mem)
+        tokens, hidden_q, log_probs_qa, entropy_qa = self.model.gen_question(observation, hidden_hist_mem)
         output = ' '.join(tokens)
-        return output, hidden_q, log_probs_qa, entropy_qa, tkn_dists_qa
+        return output, hidden_q, log_probs_qa, entropy_qa
 
     def act(self, observation, ans, hidden_q, hidden_hist):
         # Calculate policy
-        _ = hidden_hist  # does nothing, just accepts
+        _ = hidden_hist # does nothing, just accepts
         observation = torch.FloatTensor(observation).to(device)
         ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
         logits = self.model.policy(observation, ans, hidden_q)
@@ -88,8 +88,7 @@ class Agent:
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        L_policy_qa = ((self.policy_qa_param * reward_qa
-                        + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        L_policy_qa = ((self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
@@ -143,6 +142,7 @@ class Agent:
         self.data = []
         return current_trans, next_trans
 
+
     def transition_to_tensors(self, trans):
         state = torch.FloatTensor(trans.state).to(device)
         answer = torch.FloatTensor(trans.answer).to(device)
@@ -158,11 +158,10 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
-        mutual_info = torch.stack(trans.mutual_info)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem, mutual_info)
+                done,  hidden_hist_mem, cell_hist_mem)
 
 
 class AgentMem(Agent):
@@ -214,7 +213,6 @@ class AgentMem(Agent):
         L_clip = torch.min(surrogate1, surrogate2).mean()
         return L_clip
 
-
 class AgentExpMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
@@ -235,17 +233,18 @@ class AgentExpMem(Agent):
         action = dist.sample()
         probs = action_prob[action]  # Policy log prob
         entropy = dist.entropy()  # Entropy regularizer
-        return action.detach().item(), probs, entropy, action_prob
+        return action.detach().item(), probs, entropy
 
     def update(self):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem, mutual_info = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
         *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
 
+        # Get next V
         # Get current V
         V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem).squeeze()
 
@@ -261,31 +260,24 @@ class AgentExpMem(Agent):
 
         # Clipped PPO Policy Loss
         # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
-        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist_mem)
+        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem)
 
-        # Entropy regulariser
+        # Entropy regularizer
         L_entropy = self.entropy_act_param * entropy_act.detach().mean()
 
         # Value function loss
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        # L_policy_qa = ((self.policy_qa_param * reward_qa
-        #                 + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
-
-        # print('next_v',next_V_pred.size())
-        # print('mi_lazy',mutual_info.size())
-
-        adv = self.advantage_qa_param * (next_V_pred + mutual_info).detach()
-        L_policy_qa = ((self.policy_qa_param * reward_qa + adv) * log_prob_qa).mean()
-        # L_policy_qa = (reward_qa * log_prob_qa).mean()
+        L_policy_qa = ((self.policy_qa_param * reward_qa +
+                        self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
         # Total loss
         total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
 
-        # Update params
+        # Update paramss
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()
@@ -310,7 +302,6 @@ class AgentExpMem(Agent):
         answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
-
 
 def expand_zeros(tensor):
     pad = torch.zeros_like(tensor[0]).unsqueeze(0)
