@@ -242,9 +242,7 @@ class AgentExpMem(Agent):
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
-        *_ , next_hidden_hist_mem, cell_hist_mem  = next_trans
-
-        # Get current V
+        *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
 
         # Get next V
         # Get current V
