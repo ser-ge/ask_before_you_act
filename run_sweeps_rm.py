@@ -91,26 +91,24 @@ def load_yaml_config(path_to_yaml):
         print('Error reading the config file')
 
 
-yaml_config = load_yaml_config("./config.yaml")
+yaml_config = load_yaml_config("./config_rm.yaml")
 yaml_config = Config(**yaml_config)
 
 pprint.pprint(yaml_config)
 
 device = "cpu"
 
-
-
 sweep_config = {
     "name" : f"Sweep: baseline: {yaml_config.baseline}, env: {yaml_config.test_env_name}",
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" : {
-    "ans_random" : {
-        "values" : [1, 0]
-        }
-    }}
-
+    "parameters" : dict() # add extra curly brackets if you actually want to
+    # populate the dict
+    # "ans_random" : {
+    #     "values" : [1, 0]
+    #     }
+    }
 
 
 def run_sweep(configs=sweep_config):

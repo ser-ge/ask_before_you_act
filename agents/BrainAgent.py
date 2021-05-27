@@ -286,7 +286,7 @@ class AgentExpMem(Agent):
 
     def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist):
         logits = self.model.policy(state, answer, hidden_q,hidden_hist)
-        # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
+        # TODO - try to unify clip_loss with and w/o hidden_hist_mem
         probs = F.softmax(logits, dim=-1)
         pi_a = probs.squeeze(1).gather(1, action.long())
         ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
