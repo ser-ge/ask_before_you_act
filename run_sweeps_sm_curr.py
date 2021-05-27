@@ -53,7 +53,7 @@ class Config:
 
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.25
-    entropy_qa_param: float = 0.05
+    entropy_qa_param: float = 0.001
 
     train_episodes: float = 3000
     test_episodes: float = 0
