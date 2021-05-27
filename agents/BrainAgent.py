@@ -272,6 +272,10 @@ class AgentExpMem(Agent):
         # Q&A Loss
         # L_policy_qa = ((self.policy_qa_param * reward_qa
         #                 + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+
+        # print('next_v',next_V_pred.size())
+        # print('mi_lazy',mutual_info.size())
+
         adv = self.advantage_qa_param * (next_V_pred + mutual_info).detach()
         L_policy_qa = ((self.policy_qa_param * reward_qa + adv) * log_prob_qa).mean()
         # L_policy_qa = (reward_qa * log_prob_qa).mean()

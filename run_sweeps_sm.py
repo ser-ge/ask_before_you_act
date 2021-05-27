@@ -24,7 +24,7 @@ from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
 
 from language_model import Dataset, Model as QuestionRNN
-from oracle.generator import gen_phrases
+# from oracle.generator import gen_phrases
 from typing import Callable
 from dataclasses import dataclass, asdict
 
@@ -42,7 +42,7 @@ class Config:
     lstm_size: int = 128
     word_embed_dims: int = 128
     drop_out_prob: float = 0
-    gen_phrases: Callable = gen_phrases
+    # gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
     lr: float = 0.001
     gamma: float = 0.99
