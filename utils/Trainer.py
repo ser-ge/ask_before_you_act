@@ -70,8 +70,8 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
-            if episode % log_interval == 0:
-                print([question, str(answer), reward_qa])
+            # if episode % log_interval == 0:
+            #     print([question, str(answer), reward_qa])
 
             # Act
             action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
@@ -107,11 +107,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
         if done:
 
             # Update
-            if train:
+            if train and len(agent.data) >=2:
                 episode_loss, losses_tuple = agent.update()
                 loss_history.append(episode_loss)
             else:
-                episode_loss, losses_tuple = (0, (0, 0, 0, None, None))
+                episode_loss, losses_tuple = (0, (0, 0, 0,0, 0))
                 # for further info on the above looks like jank, please see the update function on the agents
 
             # Reset episode
