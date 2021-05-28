@@ -1,4 +1,3 @@
-
 train: True
 epochs: 30
 batch_size: 256
@@ -19,12 +18,12 @@ policy_qa_param: 0.25
 advantage_qa_param: 1
 entropy_qa_param: 0.2
 
-train_episodes: 6000
-test_episodes: 6000
+train_episodes: 3
+test_episodes: 3
 
-train_log_interval: 250
-test_log_interval: 250
-log_questions: True
+train_log_interval: 1
+test_log_interval: 1
+log_questions: False
 
 train_env_name: "MiniGrid-FourRooms-v0"
 # train_env_name: "MiniGrid-FourRooms-v0"
@@ -42,7 +41,9 @@ pre_trained_lstm: True
 use_mem: True
 use_seed: False
 exp_mem: True
-baseline: False
-film: True
-wandb: False
-notes: "film ans random test"
+baseline: True
+film: False
+wandb: True
+notes: "trial film"
+load: False
+name: "agent_trial"

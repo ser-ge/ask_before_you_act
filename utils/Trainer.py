@@ -1,8 +1,6 @@
 import time
-
 import numpy as np
 from collections import namedtuple
-from oracle.oracle import Answer
 import torch
 import wandb
 
@@ -26,7 +24,12 @@ Transition = namedtuple(
 )
 
 
-def train_test(env, agent, cfg, logger, n_episodes=1000,
+class DummyLogger:
+    def log(self, *args):
+        pass
+
+
+def train_test(env, agent, cfg, logger=None, n_episodes=1000,
                log_interval=50, train=True, verbose=True, test_env=False):
     episode = 0
 
@@ -45,6 +48,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
     # Initialize random memory
     hist_mem = agent.init_memory()
     last_time = time.time()
+
+    if logger is None:
+        logger = DummyLogger()
 
     while episode < n_episodes:
         # Ask before you act
@@ -72,7 +78,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             #     print([question, str(answer), reward_qa])
 
             # Act
-            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0], q_embeding)
+            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also
@@ -119,13 +125,11 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
 
 
 
-
             reward_history.append(sum(episode_reward))
 
             if cfg.wandb:
                 log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
                           episode_reward, qa_pairs, reward_history, train, test_env)
-
 
             episode_reward = []
             episode_qa_reward = []

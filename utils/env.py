@@ -3,6 +3,10 @@ from gym_minigrid import envs
 import re
 import gym
 import gym_minigrid
+import random
+import torch
+import numpy as np
+from oracle.oracle import OracleWrapper
 
 def make_env(env_name):
     empty_room_match = re.match(r"MiniGrid-Empty-Random-([0-9]+)x[0-9]+", env_name)
@@ -12,6 +16,30 @@ def make_env(env_name):
         env = gym.make(env_name)
 
     return env
+
+
+def make_oracle_envs(cfg):
+    env_train = make_env(cfg.train_env_name)
+    env_test = make_env(cfg.test_env_name)
+
+    if cfg.use_seed:
+        env_test.seed(cfg.seed)
+        env_train.seed(cfg.seed)
+        np.random.seed(cfg.seed)
+        torch.manual_seed(cfg.seed)
+        random.seed(cfg.seed)
+
+    env_train = OracleWrapper(env_train, syntax_error_reward=cfg.syntax_error_reward,
+                              undefined_error_reward=cfg.undefined_error_reward,
+                              defined_q_reward=cfg.defined_q_reward,
+                              ans_random=cfg.ans_random)
+
+    env_test = OracleWrapper(env_test, syntax_error_reward=cfg.syntax_error_reward,
+                             undefined_error_reward=cfg.undefined_error_reward,
+                             defined_q_reward=cfg.defined_q_reward_test,
+                             ans_random=cfg.ans_random)
+
+    return env_train, env_test
 
 class EmptyRandomEnv(envs.EmptyEnv):
     def __init__(self, size=20):
