@@ -43,6 +43,6 @@ exp_mem: True
 baseline: True
 film: True
 wandb: True
-notes: "INSERT NOTE"
+notes: "film gen and random"
 load: False
-name: "generic name"
+name: "film_agent"
