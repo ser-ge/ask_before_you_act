@@ -8,13 +8,13 @@ import wandb
 import argparse
 
 parser = argparse.ArgumentParser(description='Run experiments')
-parser.add_argument('--config',
+parser.add_argument('-c', '--config',
                        metavar='config',
                        type=str,
                        default='./config.yaml',
                        help='the config path')
 
-parser.add_argument('--number-of-experiments',
+parser.add_argument('-n','--number-of-experiments',
                        metavar='number-of-experiments',
                        dest='number_of_experiments',
                        type=int,
