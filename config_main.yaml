@@ -40,7 +40,7 @@ pre_trained_lstm: True
 use_mem: True
 use_seed: False
 exp_mem: True
-baseline: True
+baseline: False
 film: False
 wandb: True
 notes: "This is running NO film only main"
