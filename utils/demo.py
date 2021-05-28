@@ -32,7 +32,7 @@ def wrap_env_video_monitor(env):
     return env
 
 
-def show_qa(questions, answers):
+def render_qa(questions, answers):
     display.display(
         HTML(
             """
