@@ -11,7 +11,7 @@ from ipywidgets import interact, widgets
 import matplotlib.pyplot as plt
 
 
-def show_video():
+def render_episode():
     mp4list = glob.glob('video/*.mp4')
     if len(mp4list) > 0:
         mp4 = mp4list[0]
