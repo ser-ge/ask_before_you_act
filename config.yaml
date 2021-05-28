@@ -11,7 +11,7 @@ hidden_dim: 32
 lr: 0.0005
 gamma: 0.99
 lmbda: 0.95
-clip: 0.15
+clip: 0.2
 entropy_act_param: 0.1
 value_param: 1
 
@@ -19,7 +19,7 @@ policy_qa_param: 0.25
 advantage_qa_param: 1
 entropy_qa_param: 0.2
 
-train_episodes: 3000
+train_episodes: 5000
 test_episodes: 5000
 
 train_log_interval: 250
