@@ -25,9 +25,8 @@ train_log_interval: 1
 test_log_interval: 1
 log_questions: False
 
-train_env_name: "MiniGrid-FourRooms-v0"
-# train_env_name: "MiniGrid-FourRooms-v0"
-test_env_name: "MiniGrid-FourRooms-v0"
+train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
 
 ans_random: 0
 
@@ -42,8 +41,8 @@ use_mem: True
 use_seed: False
 exp_mem: True
 baseline: True
-film: False
+film: True
 wandb: True
-notes: "trial film"
+notes: "film gen and random"
 load: False
-name: "agent_trial"
+name: "film_agent"
