@@ -22,6 +22,7 @@ from models.BrainModel import BrainNet, BrainNetMem, BrainNetExpMem
 
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
+from utils.env import make_env
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -53,8 +54,8 @@ class Config:
     policy_qa_param: float = 0.25
     advantage_qa_param: float = 0.5
     entropy_qa_param: float = 0.5
-    train_episodes: float = 5000
-    test_episodes: float = 5000
+    train_episodes: float = 50
+    test_episodes: float = 50
     train_log_interval: float = 5
     test_log_interval: float = 5
     train_env_name: str = "MiniGrid-Empty-8x8-v0"
@@ -69,7 +70,7 @@ class Config:
     use_seed: bool = False
     seed: int = 1
     use_mem: bool = True
-    exp_mem: bool = True
+    exp_mem: bool = False
     baseline: bool = False
     wandb: bool = False
 
@@ -317,8 +318,8 @@ def run_experiment(cfg=default_config):
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
 
-    env_train = gym.make(cfg.train_env_name)
-    env_test = gym.make(cfg.test_env_name)
+    env_train = make_env(cfg.train_env_name)
+    env_test = make_env(cfg.test_env_name)
 
     if cfg.use_seed:
         env_test.seed(cfg.seed)

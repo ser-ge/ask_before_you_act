@@ -20,7 +20,6 @@ from agents.BrainAgent import Agent, AgentMem, AgentExpMem
 
 from models.BaselineModel import BaselineModel, BaselineModelExpMem
 from models.BrainModel import BrainNet, BrainNetMem, BrainNetExpMem
-from models.FilmModel import FilmNet
 
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
@@ -43,6 +42,7 @@ class Config:
     lstm_size: int = 128
     word_embed_dims: int = 128
     drop_out_prob: float = 0
+    gen_phrases: Callable = gen_phrases
     hidden_dim: float = 32
 
     lr: float = 0.0005
@@ -63,8 +63,8 @@ class Config:
     test_log_interval: float = 1
     log_questions: bool = False
 
-    train_env_name: str =  "MiniGrid-FourRooms-v0"
-    test_env_name: str = "MiniGrid-FourRooms-v0"
+    train_env_name: str =  "MiniGrid-MultiRoom-N2-S4-v0"
+    test_env_name: str = "MiniGrid-MultiRoom-N4-S5-v0"
 
     ans_random: float = 0
 
@@ -78,14 +78,11 @@ class Config:
     use_mem: bool = True
     use_seed: bool = False
     exp_mem: bool = True
-
-    film: bool = True
     baseline: bool = True
     wandb: bool = True
     notes: str = ""
 
 
-# %%
 def load_yaml_config(path_to_yaml):
     try:
         with open (path_to_yaml, 'r') as file:
@@ -105,12 +102,15 @@ device = "cpu"
 
 
 sweep_config = {
-        "name" : f"Sweep: baseline: {yaml_config.baseline}, film : {yaml_config.film} env: {yaml_config.train_env_name}",
+    "name" : f"Sweep: baseline: {yaml_config.baseline}, env: {yaml_config.test_env_name}",
     "method": "random",
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
-    "parameters" :
-        dict() }
+    "parameters" : {
+    "ans_random" : {
+        "values" : [1, 0]
+        }
+    }}
 
 
 
@@ -121,20 +121,15 @@ def run_sweep(configs=sweep_config):
     sweep_id = wandb.sweep(configs, project="ask_before_you_act")
     wandb.agent(sweep_id, function=run_experiment)
 
-class Logger:
-    def log(self, *args):
-        pass
 
 def run_experiment(cfg=yaml_config):
     dataset = Dataset(cfg)
     question_rnn = QuestionRNN(dataset, cfg)
 
-    if cfg.wandb:
-        run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
-        logger = wandb
-        cfg = wandb.config
-    else:
-        logger = Logger()
+    run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
+    logger = wandb
+    cfg = wandb.config
+
 
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
@@ -173,8 +168,7 @@ def run_experiment(cfg=yaml_config):
                                   log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
 
 
-    if cfg.wandb:
-        run.finish()
+    run.finish()
 
 
 
@@ -191,14 +185,7 @@ def set_up_agent(cfg, question_rnn):
                                         cfg.value_param, cfg.entropy_act_param)
 
     else:
-        if cfg.use_mem and cfg.exp_mem and cfg.film:
-            model = FilmNet(question_rnn)
-            agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
-                                cfg.value_param, cfg.entropy_act_param,
-                                cfg.policy_qa_param, cfg.advantage_qa_param,
-                                cfg.entropy_qa_param)
-
-        elif cfg.use_mem and cfg.exp_mem:
+        if cfg.use_mem and cfg.exp_mem:
             model = BrainNetExpMem(question_rnn)
             agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                                 cfg.value_param, cfg.entropy_act_param,
@@ -224,7 +211,4 @@ def set_up_agent(cfg, question_rnn):
 
 
 if __name__ == "__main__":
-    if yaml_config.wandb:
-        run_sweep()
-    else:
-        run_experiment()
+    run_sweep()

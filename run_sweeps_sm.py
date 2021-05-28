@@ -22,6 +22,7 @@ from models.BrainModel import BrainNet, BrainNetMem, BrainNetExpMem
 
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
+from utils.env import make_env
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -32,6 +33,8 @@ from dataclasses import dataclass, asdict
 
 
 import wandb
+from utils.env import make_env
+
 
 @dataclass
 class Config:
@@ -287,7 +290,7 @@ def run_experiment(cfg=default_config):
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
 
-    env = gym.make(cfg.env_name)
+    env = make_env(cfg.env_name)
 
     if cfg.use_seed:
         env.seed(cfg.seed)

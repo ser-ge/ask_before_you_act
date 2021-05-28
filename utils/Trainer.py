@@ -68,6 +68,9 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
             answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
+            # if episode % log_interval == 0:
+            #     print([question, str(answer), reward_qa])
+
             # Act
             action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0], q_embeding)
 
@@ -137,6 +140,7 @@ def train_test(env, agent, cfg, logger, n_episodes=1000,
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. syntax {avg_syntax_r:.3f}, "
                           f"EPS: {log_interval / (current_time - last_time):.1f} ")
 
+                    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 avg_syntax_r = 0
                 last_time = current_time
 

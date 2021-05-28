@@ -10,6 +10,7 @@ import random
 import gym
 from dataclasses import asdict
 import gym_minigrid
+from utils.env import make_env
 
 class Logger:
     def log(self, *args):
@@ -24,7 +25,7 @@ def train(cfg):
 
         logger = Logger()
 
-    env = gym.make(cfg.train_env_name)
+    env = make_env(cfg.train_env_name)
 
     if cfg.use_seed:
         env.seed(cfg.seed)
@@ -60,7 +61,7 @@ def train(cfg):
 if __name__ == "__main__":
     cfg= default_config
     cfg.name = 'agent'
-    cfg.train_env_name='MiniGrid-Empty-8x8-v0'
+    cfg.train_env_name='MiniGrid-Empty-Random-18x18'
     cfg.train_episodes=1000
 
     train(default_config)
