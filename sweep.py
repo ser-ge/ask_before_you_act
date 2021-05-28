@@ -16,6 +16,7 @@ from agents.Agent import Agent, AgentMem
 from models.brain_net import BrainNet, BrainNetMem
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train
+from utils.env import make_env
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -151,7 +152,7 @@ def run_experiment():
     if cfg.pre_trained_lstm:
         question_rnn.load("./language_model/pre-trained.pth")
 
-    env = gym.make(cfg.train_env_name)
+    env = make_env(cfg.train_env_name)
 
     if cfg.use_seed:
         env.seed(cfg.seed)

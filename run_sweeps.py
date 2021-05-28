@@ -235,7 +235,7 @@ def run_experiment(cfg=default_config):
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
 
-    env = gym.make(cfg.env_name)
+    env = make_env(cfg.env_name)
 
     if cfg.use_seed:
         env.seed(cfg.seed)

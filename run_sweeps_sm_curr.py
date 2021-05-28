@@ -23,6 +23,7 @@ from models.BrainModel import BrainNet, BrainNetMem, BrainNetExpMem
 
 from oracle.oracle import OracleWrapper
 from utils.Trainer import train_test
+from utils.env import make_env
 
 from language_model import Dataset, Model as QuestionRNN
 from oracle.generator import gen_phrases
@@ -133,8 +134,8 @@ def run_experiment(cfg=yaml_config):
     if cfg.pre_trained_lstm:
         question_rnn.load('./language_model/pre-trained.pth')
 
-    env_train = gym.make(cfg.train_env_name)
-    env_test = gym.make(cfg.test_env_name)
+    env_train = make_env(cfg.train_env_name)
+    env_test = make_env(cfg.test_env_name)
 
     if cfg.use_seed:
         env_test.seed(cfg.seed)
