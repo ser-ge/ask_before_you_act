@@ -19,7 +19,7 @@ policy_qa_param: 0.25
 advantage_qa_param: 1
 entropy_qa_param: 0.2
 
-train_episodes: 5000
+train_episodes: 3000
 test_episodes: 5000
 
 train_log_interval: 250
@@ -27,8 +27,8 @@ test_log_interval: 2
 log_questions: True
 
 train_env_name: "MiniGrid-Empty-Random-6x6-v0"
-# train_env_name: "MiniGrid-FourRooms-v0"
-test_env_name: "MiniGrid-Empty-16x16-v0"
+test_env_name: "MiniGrid-FourRooms-v0"
+# test_env_name: "MiniGrid-Empty-16x16-v0"
 
 ans_random: 0
 
@@ -44,4 +44,4 @@ use_seed: False
 exp_mem: True
 baseline: False
 wandb: True
-notes: "Empty grid with embeddings"
+notes: "Empty grid to Four Room"
