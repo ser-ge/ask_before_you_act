@@ -1,16 +1,11 @@
 import pprint
-import sys
 from utils import load_yaml_config
 from utils.Trainer import train_test
 from utils.agent import set_up_agent, load_agent, save_agent
 from utils.env import make_oracle_envs
 from dataclasses import asdict
 import wandb
-
 import argparse
-
-import os
-import sys
 
 parser = argparse.ArgumentParser(description='Run experiments')
 parser.add_argument('--config',
@@ -26,7 +21,6 @@ parser.add_argument('--number-of-experiments',
                        default=10,
                        help='the number of experiments to run')
 
-# Execute the parse_args() method
 args = parser.parse_args()
 
 def run_experiment(cfg):
@@ -36,7 +30,6 @@ def run_experiment(cfg):
         logger = wandb
     else:
         logger = None
-
 
     # Env
     env_train, env_test = make_oracle_envs(cfg)
