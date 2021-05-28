@@ -40,9 +40,9 @@ pre_trained_lstm: True
 use_mem: True
 use_seed: False
 exp_mem: True
-baseline: True
+baseline: False
 film: True
 wandb: True
-notes: "film gen and random"
+notes: "film gen and random, v2 (v1 wrong)"
 load: False
 name: "film_agent"
