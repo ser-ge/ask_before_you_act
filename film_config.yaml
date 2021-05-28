@@ -7,10 +7,10 @@ word_embed_dims: 128
 drop_out_prob: 0
 hidden_dim: 32
 
-lr: 0.0005
+lr: 0.0001
 gamma: 0.99
 lmbda: 0.95
-clip: 0.2
+clip: 0.1
 entropy_act_param: 0.1
 value_param: 1
 
@@ -43,6 +43,6 @@ exp_mem: True
 baseline: False
 film: True
 wandb: True
-notes: "film gen and random, v2 (v1 wrong)"
+notes: "film gen and random, v3 (v2 did not converge)"
 load: False
 name: "film_agent"
