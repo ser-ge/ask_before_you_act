@@ -82,4 +82,5 @@ if __name__ == "__main__":
 
     for i in range(args.number_of_experiments):
         run_experiment(cfg)
-        random_experiment(cfg)
+        if not cfg.baseline:
+            random_experiment(cfg)

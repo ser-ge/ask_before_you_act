@@ -21,8 +21,8 @@ entropy_qa_param: 0.2
 train_episodes: 7500
 test_episodes: 7500
 
-train_log_interval: 7500
-test_log_interval: 7500
+train_log_interval: 250
+test_log_interval: 250
 log_questions: True
 
 train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
@@ -43,6 +43,6 @@ exp_mem: True
 baseline: True
 film: False
 wandb: True
-notes: "INSERT NOTE"
+notes: "baseline gen rand"
 load: False
-name: "generic name"
+name: "agent base"
