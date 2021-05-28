@@ -18,11 +18,11 @@ policy_qa_param: 0.25
 advantage_qa_param: 1
 entropy_qa_param: 0.2
 
-train_episodes: 3
-test_episodes: 3
+train_episodes: 5000
+test_episodes: 5000
 
-train_log_interval: 1
-test_log_interval: 1
+train_log_interval: 0
+test_log_interval: 0
 log_questions: False
 
 train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
