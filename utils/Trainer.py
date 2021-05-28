@@ -55,6 +55,7 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
     while episode < n_episodes:
         # Ask before you act
         if cfg.baseline:
+            # jank, as you must pass something in the transition.
             action, log_prob_act, entropy_act = agent.act(state, hist_mem[0])
             answer, reward_qa, entropy_qa = (1, 0, 1)
             log_prob_qa = 6 * [torch.Tensor([1])]
@@ -122,8 +123,6 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
             state = env.reset()['image']  # Discard other info
             hist_mem = agent.init_memory()  # Initialize memory
             step = 0
-
-
 
             reward_history.append(sum(episode_reward))
 
