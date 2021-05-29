@@ -216,7 +216,7 @@ class AgentMem(Agent):
         L_clip = torch.min(surrogate1, surrogate2).mean()
         return L_clip
 
-class AgentExpMem(Agent):
+class AgentEmbedd(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
                  policy_qa_param=1, advantage_qa_param=0.5, entropy_qa_param=0.05):
@@ -273,8 +273,10 @@ class AgentExpMem(Agent):
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
+
+        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
         L_policy_qa = ((self.policy_qa_param * reward_qa +
-                        self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+                        self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
