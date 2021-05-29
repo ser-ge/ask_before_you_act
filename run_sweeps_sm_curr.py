@@ -31,6 +31,8 @@ from dataclasses import dataclass, asdict
 
 import wandb
 # %%
+from utils.agent import save_agent
+
 
 @dataclass
 class Config:
@@ -80,6 +82,7 @@ class Config:
     baseline: bool = True
     wandb: bool = True
     notes: str = ""
+    name: str = "agent"
 
 
 def load_yaml_config(path_to_yaml):
@@ -106,7 +109,11 @@ sweep_config = {
     "metric": {"name": "train/avg_reward_episodes", "goal": "maximize"},
 
     "parameters" :
-        dict()
+        {
+            'ans_random' : {
+                'values' : [1, 0]
+            }
+        }
     }
 
 
@@ -130,7 +137,7 @@ def run_experiment(cfg=yaml_config):
     if cfg.wandb:
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg))
         logger = wandb
-        cfg = wandb.config
+        cfg = Config(**dict(wandb.config))
 
     else:
         logger = Logger()
@@ -166,11 +173,17 @@ def run_experiment(cfg=yaml_config):
     train_reward = train_test(env_train, agent, cfg, logger, n_episodes=cfg.train_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=False)
 
-    # Test
+    run_name = run.name
 
+    save_agent(agent, cfg, run_name+"-train")
+
+    # Test
     if cfg.test_episodes:
         test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                                   log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
+
+    save_agent(agent, cfg, run_name+"-test")
+
 
     if cfg.wandb:
         run.finish()

@@ -8,7 +8,7 @@ word_embed_dims: 128
 drop_out_prob: 0
 hidden_dim: 32
 
-lr: 0.0005
+lr: 0.0003
 gamma: 0.99
 lmbda: 0.95
 clip: 0.15
@@ -19,16 +19,15 @@ policy_qa_param: 0.25
 advantage_qa_param: 1
 entropy_qa_param: 0.2
 
-train_episodes: 3000
-test_episodes: 5000
+train_episodes: 7500
+test_episodes: 7500
 
 train_log_interval: 250
-test_log_interval: 2
+test_log_interval: 250
 log_questions: True
 
-train_env_name: "MiniGrid-Empty-Random-6x6-v0"
-# train_env_name: "MiniGrid-FourRooms-v0"
-test_env_name: "MiniGrid-Empty-16x16-v0"
+train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
 
 ans_random: 0
 
@@ -42,6 +41,7 @@ pre_trained_lstm: True
 use_mem: True
 use_seed: False
 exp_mem: True
-baseline: True
+baseline: False
 wandb: True
-notes: "Empty grid with embeddings"
+notes: "Embeddings main / random"
+name: "agent-embed"
