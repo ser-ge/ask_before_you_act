@@ -1,72 +1,29 @@
 import wandb
 import pandas as pd
 
-# %% [markdown]
-"""
-Download all runs from wandb and make results table
-Extract epochs with max val acc from each run and model config
-create full results df
-save results df to latex table (in txt file)
-save results to pickle
-"""
-# %%
-table_name = "q2_results_table_rm_latest"
+table_name = "ask_before_you_act"
 
 api = wandb.Api()
 
-def to_latex(df, name):
-    df.to_latex(name + ".txt", index=True, column_format='l|r|r|r|r|', label=name)
+runs = api.runs("rossmurphy/ask_before_you_act")
 
-def cols_to_percent(df, cols, inplace=True):
-    if inplace:
-        for col in cols:
-            df[col] = pd.Series(["{0:.2f}%".format(val * 100) for val in df[col]], index = df.index)
-        return df
+cols = ["lr", "gamma", "lmbd", "clip", "entropy_act_param", "value_param", "policy_qa_param", "advantage_qa_param", "entropy_qa_param", "train_episodes", "test_episodes", "train_log_interval", "test_log_interval", "log_questions", "train_env_name", "test_env_name", "ans_random", "undefined_error_reward", "syntax_error_reward", "defined_q_reward", "defined_q_reward_test", "pre_trained_lstm", "use_mem", "use_seed", "exp_mem", "baselin", "film", "wandb", "notes", "load", "name"]
 
-
-runs = api.runs("ser-ge/fmnist_conv_net")
-
-
-cols = ['val_acc',  'val_loss', 'test_acc','test_loss','train_acc', 'train_loss',
-        'train_loss_no_reg', 'epoch','train_acc_no_reg']
-
-config_cols = [
-        ]
-results = []
-
+summary_list = []
+config_list = []
+name_list = []
 for run in runs:
-    hist = run.history()
+    # run.summary are the output key/values like accuracy.  We call ._json_dict to omit large files
+    summary_list.append(run.summary._json_dict)
+    # run.config is the input metrics.  We remove special values that start with _.
+    config_list.append({k:v for k,v in run.config.items() if not k.startswith('_')})
+    # run.name is the name of the run.
+    name_list.append(run.name)
 
-    # skip runs with missing cols
-    if not set(cols).issubset(hist.columns):
-        continue
+summary_df = pd.DataFrame.from_records(summary_list)
+config_df = pd.DataFrame.from_records(config_list)
+name_df = pd.DataFrame({'name': name_list})
+all_df = pd.concat([name_df, config_df,summary_df], axis=1)
+all_df.to_csv("project.csv")
 
-    hist = hist[cols]
-
-    hist = hist[hist.val_loss == min(hist.val_loss)].iloc[0]
-
-    hist['name'] = run.name
-
-
-    config = {k:v for k,v in run.config.items() if not k.startswith('_')}
-    config = pd.Series(config)
-
-    result = hist.append(config)
-    results.append(result)
-
-
-
-results_df = pd.concat(results, 1).transpose()
-
-results_df = results_df.sort_values("val_loss", ascending=True).reset_index(inplace=False)
-
-results_df.to_pickle(table_name+".pkl")
-
-# drop cols
-# results_df = results_df.drop(["index"])
-
-percent_cols = [col for col in results_df.columns if col.endswith("acc")]
-
-results_df = cols_to_percent(results_df, percent_cols)
-
-to_latex(results_df, table_name)
+all_df.to_pickle(table_name+".pkl")
