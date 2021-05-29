@@ -216,7 +216,7 @@ class AgentMem(Agent):
         L_clip = torch.min(surrogate1, surrogate2).mean()
         return L_clip
 
-class AgentEmbedd(Agent):
+class AgentExpMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
                  clip_param=0.2, value_param=1, entropy_act_param=0.01,
                  policy_qa_param=1, advantage_qa_param=0.5, entropy_qa_param=0.05):
