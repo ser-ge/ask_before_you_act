@@ -1,7 +1,7 @@
 import yaml
 import pandas as pd
 
-config_path = 'config.yaml'
+config_path = '../config.yaml'
 
 def yaml_jank(path_to_yaml):
     with open (path_to_yaml, 'r') as file:
