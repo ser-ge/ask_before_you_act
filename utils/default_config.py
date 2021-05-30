@@ -46,6 +46,8 @@ class Config:
     exp_mem: bool = True
     baseline: bool = True
     film: bool = False
+    q_embed: bool = False
+
     wandb: bool = True
     notes: str = ""
     load: bool = False

@@ -45,7 +45,7 @@ class BaselineAgent:
 
         state, answer, hidden_q, action, reward, reward_qa, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, \
-        done, hidden_hist_mem, cell_hist_mem = current_trans
+        done, _, hidden_hist_mem, cell_hist_mem = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
 
@@ -130,10 +130,11 @@ class BaselineAgent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
+        q_embedding = torch.stack(trans.q_embedding)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem)
+                done, q_embedding, hidden_hist_mem, cell_hist_mem)
 
     def store(self, transition):
         self.data.append(transition)
@@ -164,7 +165,7 @@ class BaselineAgentExpMem(BaselineAgent):
 
         state, answer, hidden_q, action, reward, reward_qa, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, \
-        done, hidden_hist_mem, cell_hist_mem = current_trans
+        done, _, hidden_hist_mem, cell_hist_mem = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
 

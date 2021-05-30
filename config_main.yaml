@@ -25,7 +25,8 @@ train_log_interval: 250
 test_log_interval: 250
 log_questions: True
 
-train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+# train_env_name: "MiniGrid-MultiRoom-N2-S4-v0"
+train_env_name: "MiniGrid-Empty-Random-5x5-v0"
 test_env_name: "MiniGrid-MultiRoom-N4-S5-v0"
 
 ans_random: 0
@@ -41,8 +42,10 @@ use_mem: True
 use_seed: False
 exp_mem: True
 baseline: False
+q_embed: True
 film: False
-wandb: True
+wandb: False
+
 notes: "This is running NO film only main"
 load: False
 name: "No film main"

@@ -61,7 +61,7 @@ class Agent:
 
         state, answer, hidden_q, action, reward, reward_qa, \
         log_prob_act, log_prob_qa, entropy_act, entropy_qa, \
-        done, hidden_hist_mem, cell_hist_mem = current_trans
+        done, _, hidden_hist_mem, cell_hist_mem = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
 
@@ -160,11 +160,11 @@ class Agent:
         done = ~torch.BoolTensor(trans.done).to(device).view(-1, 1)  # You need the tilde!
         hidden_hist_mem = torch.cat(trans.hidden_hist_mem)
         cell_hist_mem = torch.cat(trans.cell_hist_mem)
+        q_embedding = torch.stack(trans.q_embedding)
 
         return Transition(state, answer, hidden_q, action, reward, reward_qa,
                 log_prob_act, log_prob_qa, entropy_act, entropy_qa,
-                done,  hidden_hist_mem, cell_hist_mem)
-
+                done, q_embedding, hidden_hist_mem, cell_hist_mem)
 
 class AgentMem(Agent):
     def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
@@ -241,7 +241,7 @@ class AgentExpMem(Agent):
         current_trans, next_trans = self.get_batch()
 
         state, answer, hidden_q, action, reward, reward_qa, \
-        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, hidden_hist_mem, cell_hist_mem  = current_trans
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, _, hidden_hist_mem, cell_hist_mem  = current_trans
 
         next_state, next_answer, next_hidden_q, *_ = next_trans
         *_ , next_hidden_hist_mem, cell_hist_mem = next_trans
@@ -308,6 +308,111 @@ class AgentExpMem(Agent):
         memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
         return memory
 
+
+
+
+class AgentExpMemEmbed(Agent):
+    def __init__(self, model, learning_rate=0.001, lmbda=0.95, gamma=0.99,
+                 clip_param=0.2, value_param=1, entropy_act_param=0.01,
+                 policy_qa_param=1, advantage_qa_param=0.5, entropy_qa_param=0.05):
+        super().__init__(model, learning_rate, lmbda, gamma,
+                 clip_param, value_param, entropy_act_param,
+                 policy_qa_param, advantage_qa_param, entropy_qa_param)
+
+        self.action_memory = True
+
+    def act(self, observation, ans, hidden_q, hidden_hist_mem, q_embedding):
+        # Calculate policy
+        observation = torch.FloatTensor(observation).to(device)
+        ans = torch.FloatTensor(ans).view((-1, 2)).to(device)
+        q_embedding = q_embedding.unsqueeze(0)
+        logits = self.model.policy(observation, ans, hidden_q, hidden_hist_mem, q_embedding)
+        action_prob = F.softmax(logits.squeeze() / self.T, dim=-1)
+        dist = distributions.Categorical(action_prob)
+        action = dist.sample()
+        probs = action_prob[action]  # Policy log prob
+        entropy = dist.entropy()  # Entropy regularizer
+        return action.detach().item(), probs, entropy
+
+    def update(self):
+        current_trans, next_trans = self.get_batch()
+
+        state, answer, hidden_q, action, reward, reward_qa, \
+        log_prob_act, log_prob_qa, entropy_act, entropy_qa, done, q_embedding, hidden_hist_mem, cell_hist_mem = current_trans
+
+        next_state, next_answer, next_hidden_q, *_ = next_trans
+        *_ , next_q_embedding, next_hidden_hist_mem, cell_hist_mem,  = next_trans
+
+        # Get next V
+        # Get current V
+        V_pred = self.model.value(state, answer, hidden_q, hidden_hist_mem, q_embedding).squeeze()
+
+        # Get next V
+        next_V_pred = self.model.value(next_state, next_answer, next_hidden_q, next_hidden_hist_mem, next_q_embedding).squeeze()
+
+        # Compute TD error
+        target = reward.squeeze().to(device) + self.gamma * next_V_pred * done.squeeze().to(device)
+        td_error = (target - V_pred).detach()
+
+        # Generalised Advantage Estimation
+        advantage = self.gae(td_error)
+
+        # Clipped PPO Policy Loss
+        # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
+        L_clip = self.clip_loss(action, advantage, answer, log_prob_act, state, hidden_q,hidden_hist_mem, q_embedding)
+
+        # Entropy regularizer
+        L_entropy = self.entropy_act_param * entropy_act.detach().mean()
+
+        # Value function loss
+        L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
+
+        # Q&A Loss
+
+        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
+        L_policy_qa = ((self.policy_qa_param * reward_qa +
+                        self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
+        L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
+        L_qa = (L_policy_qa + L_entropy_qa).to(device)
+
+        # Total loss
+        total_loss = -(L_clip + L_qa - L_value + L_entropy).to(device)
+
+        # Update paramss
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
+
+        return total_loss.item(), (L_clip, L_value, L_entropy, L_policy_qa, L_entropy_qa)
+
+    def clip_loss(self, action, advantage, answer, log_prob_act, state, hidden_q, hidden_hist, q_embedding):
+        logits = self.model.policy(state, answer, hidden_q,hidden_hist, q_embedding)
+        # TODO - try to unify clip_loss wit and w/o hidden_hist_mem
+        probs = F.softmax(logits, dim=-1)
+        pi_a = probs.squeeze(1).gather(1, action.long())
+        ratio = torch.exp(torch.log(pi_a) - torch.log(log_prob_act))
+        surrogate1 = ratio * advantage
+        surrogate2 = advantage * torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param)
+        L_clip = torch.min(surrogate1, surrogate2).mean()
+        return L_clip
+
+    def remember(self, state, action, answer, hidden_q, hist_mem):
+        action_one_hot = torch.zeros((1, 7)).to(device)
+        action_one_hot[0, action] = 1
+        obs = torch.FloatTensor(state).to(device)
+        answer = torch.FloatTensor(answer).view((-1, 2)).to(device)
+        memory = self.model.remember(obs, action_one_hot, answer, hidden_q, hist_mem)
+        return memory
+
+    def ask(self, observation, hidden_hist_mem):
+        observation = torch.FloatTensor(observation).to(device)
+        tokens, hidden_q, log_probs_qa, entropy_qa, q_embedding = self.model.gen_question(observation, hidden_hist_mem)
+        output = ' '.join(tokens)
+        return output, hidden_q, log_probs_qa, entropy_qa, q_embedding
+
+
 def expand_zeros(tensor):
     pad = torch.zeros_like(tensor[0]).unsqueeze(0)
     return torch.cat((tensor, pad), 0)
+
+

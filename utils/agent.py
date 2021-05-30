@@ -1,7 +1,7 @@
 from agents.BaselineAgent import BaselineAgentExpMem, BaselineAgent
-from agents.BrainAgent import AgentExpMem, AgentMem, Agent
+from agents.BrainAgent import AgentExpMem, AgentMem, Agent, AgentExpMemEmbed
 from models.BaselineModel import BaselineModelExpMem, BaselineModel
-from models.BrainModel import BrainNetExpMem, BrainNetMem, BrainNet
+from models.BrainModel import BrainNetExpMem, BrainNetMem, BrainNet, BrainNetExpMemEmbed
 from language_model import Dataset, Model as QuestionRNN
 import utils
 from models.FilmModel import FilmNet
@@ -49,6 +49,13 @@ def set_up_agent(cfg, question_rnn=None):
         if cfg.use_mem and cfg.exp_mem and cfg.film:
             model = FilmNet(question_rnn)
             agent = AgentExpMem(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
+                                cfg.value_param, cfg.entropy_act_param,
+                                cfg.policy_qa_param, cfg.advantage_qa_param,
+                                cfg.entropy_qa_param)
+
+        elif cfg.use_mem and cfg.exp_mem and cfg.q_embed:
+            model = BrainNetExpMemEmbed(question_rnn)
+            agent = AgentExpMemEmbed(model, cfg.lr, cfg.lmbda, cfg.gamma, cfg.clip,
                                 cfg.value_param, cfg.entropy_act_param,
                                 cfg.policy_qa_param, cfg.advantage_qa_param,
                                 cfg.entropy_qa_param)

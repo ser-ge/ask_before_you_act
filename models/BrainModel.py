@@ -149,3 +149,77 @@ class BrainNetExpMem(BrainNetMem):
         x = torch.cat((encoded_obs, answer, hidden_q,hidden_hist_mem), 1)
         state_value = self.value_head(x)
         return state_value
+
+
+
+class BrainNetExpMemEmbed(BrainNetMem):
+    def __init__(self, question_rnn, action_dim=7):
+        super().__init__(question_rnn, action_dim)
+        # self.mem_hidden_dim is the explicit memory connection
+        # 265 is 64 obs CNN + 7 one hot action + 2 of answer + 128 of Q&A hx + 64 from explicit memory
+        self.policy_input_dim = self.cnn_encoding_dim  + 2 + self.hidden_q_dim \
+                                + self.mem_hidden_dim + 128
+
+        self.policy_head = nn.Linear(self.policy_input_dim, action_dim)
+        self.value_head = nn.Linear(self.policy_input_dim, 1)
+
+    def policy(self, obs, answer, hidden_q, hidden_hist_mem, q_embedding):
+        """
+        hidden_q : last hidden state§
+        """
+        encoded_obs = self.encode_obs(obs)
+
+        x = torch.cat((encoded_obs, answer, hidden_q, hidden_hist_mem, q_embedding), 1)
+        action_policy = self.policy_head(x)
+        return action_policy
+
+    def value(self, obs, answer, hidden_q, hidden_hist_mem, q_embedding):
+        encoded_obs = self.encode_obs(obs)
+        x = torch.cat((encoded_obs, answer, hidden_q, hidden_hist_mem, q_embedding), 1)
+        state_value = self.value_head(x)
+        return state_value
+
+    def emebed_question(self, question):
+
+        idx = [self.question_rnn.dataset.word_to_index[word] for word in question]
+        embeddings = [self.question_rnn.embedding(torch.tensor(word)) for word in idx]
+        embeddings = torch.stack(embeddings)
+        return embeddings.mean(0)
+
+    def gen_question(self, obs, encoded_memory):
+        '''
+        generate a question to ask the oracle
+        note that this method involves the question_rnn
+        and note that the question_rnn takes as an input a history of your
+        observations and actions
+        '''
+        encoded_obs = self.encode_obs(obs)
+        hx = torch.cat((encoded_obs, encoded_memory.view(-1, self.mem_hidden_dim)), 1)
+        cx = torch.randn(hx.shape).to(device)  # (batch, hidden_size)
+        entropy_qa = 0
+        log_probs_qa = []
+        words = ['<sos>']
+
+        memory = (hx, cx)
+
+        while words[-1] != '<eos>':
+            x = torch.tensor(self.question_rnn.dataset.word_to_index[words[-1]]).unsqueeze(0).to(device)
+            logits, memory = self.question_rnn.process_single_input(x, memory)
+            dist = self.softmax(logits.squeeze())
+            m = distributions.Categorical(dist)
+            tkn_idx = m.sample()
+            log_probs_qa.append(m.log_prob(tkn_idx))
+            entropy_qa += m.entropy().item()
+            word = self.question_rnn.dataset.index_to_word[tkn_idx.item()]
+            words.append(word)
+            if len(words) > 6: break
+
+        entropy_qa /= len(words)
+
+        last_hidden_state = memory[0]
+        output = words[1:-1]  # remove sos and eos
+
+        embedding = self.emebed_question(words[1:])
+
+        return output, last_hidden_state, log_probs_qa, entropy_qa, embedding
+

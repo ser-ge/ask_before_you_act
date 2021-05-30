@@ -4,6 +4,25 @@ from collections import namedtuple
 import torch
 import wandb
 
+# Transition = namedtuple(
+#     "Transition",
+#     [
+#         "state",
+#         "answer",
+#         "hidden_q",
+#         "action",
+#         "reward",
+#         "reward_qa",
+#         "log_prob_act",
+#         "log_prob_qa",
+#         "entropy_act",
+#         "entropy_qa",
+#         "done",
+#         "hidden_hist_mem",
+#         "cell_hist_mem",
+#     ],
+# )
+
 Transition = namedtuple(
     "Transition",
     [
@@ -18,11 +37,11 @@ Transition = namedtuple(
         "entropy_act",
         "entropy_qa",
         "done",
+        "q_embedding",
         "hidden_hist_mem",
         "cell_hist_mem",
     ],
 )
-
 
 class DummyLogger:
     def log(self, *args):
@@ -55,11 +74,29 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
     while episode < n_episodes:
         # Ask before you act
         if cfg.baseline:
-            # jank, as you must pass something in the transition.
             action, log_prob_act, entropy_act = agent.act(state, hist_mem[0])
             answer, reward_qa, entropy_qa = (1, 0, 1)
             log_prob_qa = 6 * [torch.Tensor([1])]
+
+            #dummy not to break transtition
             hidden_q = torch.ones(128)
+            q_embedding = torch.ones(128)
+
+        elif cfg.q_embed:
+
+            # Ask
+            question, hidden_q, log_prob_qa, entropy_qa, q_embedding = agent.ask(state, hist_mem[0])
+            answer, reward_qa = env.answer(question)
+
+            # Logging
+            episode_qa_reward.append(reward_qa)
+            qa_pairs.append([question, str(answer), reward_qa])  # Storing
+
+            # Answer
+            answer = answer.encode()  # For passing vector to agent
+            avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
+
+            action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0], q_embedding)
 
         else:
             # Ask
@@ -75,11 +112,10 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
             answer = answer.encode()  # For passing vector to agent
             avg_syntax_r += 1 / log_interval * (reward_qa - avg_syntax_r)
 
-            # if episode % log_interval == 0:
-            #     print([question, str(answer), reward_qa])
-
-            # Act
             action, log_prob_act, entropy_act = agent.act(state, answer, hidden_q, hist_mem[0])
+
+            #dummy not to break transtition
+            q_embedding = torch.ones(128)
 
         # Remember
         if cfg.use_mem:  # need to make this work for baseline also
@@ -96,7 +132,7 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
 
         # Store
         t = Transition(state, answer, hidden_q, action, reward, reward_qa,
-                       log_prob_act.item(), log_prob_qa, entropy_act.item(), entropy_qa, done,
+                       log_prob_act.item(), log_prob_qa, entropy_act.item(), entropy_qa, done, q_embedding,
                        hist_mem[0], hist_mem[1])
 
         agent.store(t)
@@ -117,7 +153,6 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
                 loss_history.append(episode_loss)
             else:
                 episode_loss, losses_tuple = (0, (0, 0, 0, 0, 0))
-                # for further info on the above looks like jank, please see the update function on the agents
 
             # Reset episode
             state = env.reset()['image']  # Discard other info
@@ -150,7 +185,6 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
     return reward_history
 
 
-# test push again again
 def log_cases(logger, cfg, episode, episode_loss, losses_tuple, episode_qa_reward,
               episode_reward, qa_pairs, reward_history, train, test_env):
     if train:
