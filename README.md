@@ -5,7 +5,7 @@
 This repository contains the code for training and evaluation of our final NLP
 project: "Ask Before You Act".
 
-![Demo](./figures/demo.gif)
+<img alt="Demo" src="./figures/demo.gif" width="500">
 
 ## Abstract
 
