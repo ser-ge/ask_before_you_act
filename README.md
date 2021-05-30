@@ -26,7 +26,13 @@ harder environment.  We observe a significant increase in
 generalisation performance compared to a baseline agent unable to ask
 questions. Through grounding the emergent natural language questions, the
 agent can reason about the dynamics of its environment to the point that it can
-ask new, relevant questions when deployed to a novel environ-men
+ask new, relevant questions when deployed to a novel environ-men.
+
+
+## Installation
+
+
+
 
 
 
