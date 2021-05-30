@@ -10,7 +10,7 @@ hidden_dim: 32
 lr: 0.0001
 gamma: 0.99
 lmbda: 0.95
-clip: 0.1
+clip: 0.15
 entropy_act_param: 0.1
 value_param: 1
 
@@ -42,7 +42,9 @@ use_seed: False
 exp_mem: True
 baseline: False
 film: True
+q_embed: False
+
 wandb: True
-notes: "film gen and random, v3 (v2 did not converge)"
+notes: "Film Model"
 load: False
 name: "film_agent"

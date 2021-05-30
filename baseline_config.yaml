@@ -42,7 +42,9 @@ use_seed: False
 exp_mem: True
 baseline: True
 film: False
+q_embed: False
+
 wandb: True
-notes: "baseline gen rand"
+notes: "baseline"
 load: False
-name: "agent base"
+name: "agent baseline"
