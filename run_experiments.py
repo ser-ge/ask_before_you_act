@@ -18,49 +18,43 @@ parser.add_argument('-n','--number-of-experiments',
                        metavar='number-of-experiments',
                        dest='number_of_experiments',
                        type=int,
-                       default=None,
                        help='the number of experiments to run')
 
 parser.add_argument('-w','--wandb',
                         type=bool,
                         default=False,
                         dest='wandb',
-                       help='log data to wandb, you must be logged into wandb')
+                        help='log data to wandb, you must be logged into wandb')
 
 
 parser.add_argument('-ansr','--ans_random',
-                       metavar='number-of-experiments',
-                       dest='number_of_experiments',
-                       type=int,
-                       default=None,
-                       help='test on envrionmet with noisey oracle after training')
+                       dest='ans_random',
+                       type=bool,
+                       default=False,
+                       help='test on environment with noisy oracle after training')
 
 
 parser.add_argument('-v','--verbose',
                        metavar='number-of-experiments',
                        dest='verbose',
                        type=int,
-                       default=None,
                        help='logging and printing interval')
 
 
 parser.add_argument('--env_train',
                        dest='train_env_name',
                        type=str,
-                       default=None,
                        help='training eviroment, this runs first')
 
 
 parser.add_argument('--env_test',
                        dest='test_env_name',
                        type=str,
-                       default= "MiniGrid-MultiRoom-N4-S5-v0",
                        help='testing enviroment, for generalisation testing')
 
 parser.add_argument('--episodes',
                        dest='epsisodes',
                        type=int,
-                       default=None,
                        help='number of episodes for train and test env runs')
 
 def run_experiment(cfg):
@@ -142,5 +136,5 @@ if __name__ == "__main__":
 
     for i in range(args.number_of_experiments):
         run_experiment(cfg)
-        if not cfg.baseline:
+        if not cfg.baseline and args.ans_random:
             random_experiment(cfg)
