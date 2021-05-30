@@ -103,6 +103,8 @@ def random_experiment(cfg):
     if cfg.wandb:
         run = wandb.init(project='ask_before_you_act', config=asdict(cfg), reinit=True)
         logger = wandb
+    else:
+        logger = None
 
     agent = load_agent(cfg.name)
     _, env_test = make_oracle_envs(cfg)
