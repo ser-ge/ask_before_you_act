@@ -4,24 +4,6 @@ from collections import namedtuple
 import torch
 import wandb
 
-# Transition = namedtuple(
-#     "Transition",
-#     [
-#         "state",
-#         "answer",
-#         "hidden_q",
-#         "action",
-#         "reward",
-#         "reward_qa",
-#         "log_prob_act",
-#         "log_prob_qa",
-#         "entropy_act",
-#         "entropy_qa",
-#         "done",
-#         "hidden_hist_mem",
-#         "cell_hist_mem",
-#     ],
-# )
 
 Transition = namedtuple(
     "Transition",

@@ -18,7 +18,7 @@ parser.add_argument('-n','--number-of-experiments',
                        metavar='number-of-experiments',
                        dest='number_of_experiments',
                        type=int,
-                       default=1,
+                       default=None,
                        help='the number of experiments to run')
 
 parser.add_argument('-w','--wandb',
@@ -32,7 +32,7 @@ parser.add_argument('-ansr','--ans_random',
                        metavar='number-of-experiments',
                        dest='number_of_experiments',
                        type=int,
-                       default=0,
+                       default=None,
                        help='test on envrionmet with noisey oracle after training')
 
 
@@ -40,14 +40,14 @@ parser.add_argument('-v','--verbose',
                        metavar='number-of-experiments',
                        dest='verbose',
                        type=int,
-                       default=100,
+                       default=None,
                        help='logging and printing interval')
 
 
 parser.add_argument('--env_train',
                        dest='train_env_name',
                        type=str,
-                       default="MiniGrid-MultiRoom-N2-S4-v0",
+                       default=None,
                        help='training eviroment, this runs first')
 
 
@@ -60,7 +60,7 @@ parser.add_argument('--env_test',
 parser.add_argument('--episodes',
                        dest='epsisodes',
                        type=int,
-                       default= 7500,
+                       default=None,
                        help='number of episodes for train and test env runs')
 
 def run_experiment(cfg):
@@ -117,16 +117,25 @@ def random_experiment(cfg):
 
     if cfg.wandb: run.finish()
 
+
 if __name__ == "__main__":
     args = parser.parse_args()
     config_path = args.config
     cfg = load_yaml_config(config_path)
     cfg.wandb = args.wandb
-    cfg.train_log_interval = args.verbose
-    cfg.test_log_interval = args.verbose
-    cfg.train_env_name = args.train_env_name
-    cfg.test_env_name = args.test_env_name
-    cfg.test_episodes = cfg.train_episodes = args.epsisodes
+
+    if args.verbose is not None:
+        cfg.train_log_interval = args.verbose
+        cfg.test_log_interval = args.verbose
+
+    if args.train_env_name is not None:
+        cfg.train_env_name = args.train_env_name
+
+    if args.test_env_name is not None:
+        cfg.test_env_name = args.test_env_name
+
+    if args.epsisodes is not None:
+        cfg.test_episodes = cfg.train_episodes = args.epsisodes
 
     print(f'Running {args.number_of_experiments} experiments')
     pprint.pprint(cfg)
