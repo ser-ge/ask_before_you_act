@@ -16,6 +16,7 @@ cols = {'batch_size', 'sequence_len', 'lstm_size',
        'defined_q_reward_test', 'pre_trained_lstm', 'use_mem'}
 
 a = pd.json_normalize(config)
+# Latex
 a[cols].T.to_latex(index=True)
 
 

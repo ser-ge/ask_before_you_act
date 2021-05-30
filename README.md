@@ -5,9 +5,7 @@
 This repository contains the code for training and evaluation of our final NLP
 project: "Ask Before You Act".
 
-![Model Overview](/figures/model_overview.png)
-
-
+<img alt="Demo" src="./figures/demo.gif" width="500">
 
 ## Abstract
 
@@ -28,6 +26,7 @@ questions. Through grounding the emergent natural language questions, the
 agent can reason about the dynamics of its environment to the point that it can
 ask new, relevant questions when deployed to a novel environmen.
 
+![Model Overview](./figures/model_overview.png)
 
 ## Installation
 
