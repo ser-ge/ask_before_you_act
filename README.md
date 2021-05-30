@@ -32,9 +32,32 @@ ask new, relevant questions when deployed to a novel environ-men.
 ## Installation
 
 
+The required Python packages can be installed by running:
+
+```shell
+pip3 install --user --upgrade -r requirements.txt
+```
 
 
+## Trainning and Evaluation
 
+
+The default configurations for each of the models can be found in the following files:
+
+```
+baseline_config.yaml
+film_config.yaml
+main_config.yaml
+```
+
+To train the main agent on the MiniGrid-MultiRoom-N2-S4-v0  and test
+generalisation performance  on MiniGrid-MultiRoom-N4-S5-v0 you can run the
+following command:
+
+
+```shell
+python run_experiments.py --env_train MiniGrid-MultiRoom-N2-S4-v0 --env_test -MiniGrid-MultiRoom-N4-S5-v0 -episodes 7500 --verbose 20 -c main_config.yaml
+```
 
 
 
