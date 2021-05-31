@@ -34,21 +34,25 @@ def plotter(plots_list, window=200):
 
         # Plot generalisation
         plt.style.use("seaborn")
-        fig, axs = plt.subplots(2, 1, figsize=(4.5, 6.75))
+        fig, axs = plt.subplots(1, 2, figsize=(10, 4.5)) #figsize=(8, 4.5) #figsize=(4.5, 6.75)
         labels = ["Baseline", "Main", "FiLM"]
+        # labels = ["Baseline", "Main"]
         for mean, std, label in zip(means_train_smoothed, stds_train_smoothed, labels):
             mean = np.array(mean)[:5000]
             std = np.array(std)[:5000]
             episodes = np.linspace(0, mean.shape[0] - 1, num=mean.shape[0])
             axs[0].plot(episodes, mean, label=label)
             # axs[0].fill_between(episodes, mean - std, mean + std, alpha=0.3)
-        # axs[0].set_xlabel("Episodes")
+        axs[0].set_xlabel("Episodes")
         axs[0].set_ylabel("Training reward")
         axs[0].legend(loc="upper left")
 
-        labels = ["Baseline", "Main", "Main NoEmbed", "Main Rand", "FiLM", "FiLM Rand"]
-        styles = ["#1f77b4", "#2ca02c", "#2ca02c", "#2ca02c", "#d62728", "#d62728"]
-        alphas = [0.8, 1,  0.65, 0.35, 1, 0.35]
+        labels = ["Baseline", "Main", "Main Rand", "FiLM", "FiLM Rand"]
+        styles = ["#1f77b4", "#2ca02c", "#2ca02c", "#d62728", "#d62728"]
+        alphas = [0.8, 1,  0.65, 1, 0.65]
+        # labels = ["Baseline", "Main"]
+        # alphas = [1, 1,  1, 1, 0.65]
+        # styles = ["#1f77b4", "#2ca02c"]
         for mean, std, label, sty, a in zip(means_test_smoothed, stds_test_smoothed, labels, styles, alphas):
             mean = np.array(mean)[:5000]
             std = np.array(std)[:5000]
@@ -67,7 +71,7 @@ def plotter(plots_list, window=200):
 
 
 if __name__ == '__main__':
-    # plot1_train = ["baseline_train_ans_true", "main_em_non_random_train"]
+    # plot1_train = ["baseline_train_ans_true", "main_embed_ans_true"]
     # plot1_test = ["baseline_test_ans_true", "main_em_non_random_test"]
     # plot1 = [plot1_train, plot1_test]
 
@@ -75,8 +79,8 @@ if __name__ == '__main__':
     # plot2_test = ["baseline_test_ans_true", "film_test_ans_true", "film_test_ans_random"]
     # plot2 = [plot2_train, plot2_test]
     #
-    plot3_train = ["baseline_train_ans_true", "main_em_non_random_train", "film_train_ans_true"]
-    plot3_test = ["baseline_test_ans_true", "main_em_non_random_test", "main_test_ans_true",
+    plot3_train = ["baseline_train_ans_true", "main_embed_ans_true", "film_train_ans_true"]
+    plot3_test = ["baseline_test_ans_true", "main_em_non_random_test",
                   "main_em_random_test", "film_test_ans_true", "film_test_ans_random"]
     plot3 = [plot3_train, plot3_test]
 
