@@ -273,7 +273,6 @@ class AgentExpMem(Agent):
         # Q&A Loss
         discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
 
-
         L_policy_qa = ((self.policy_qa_param * reward_qa +
                         self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
@@ -414,5 +413,3 @@ class AgentExpMemEmbed(Agent):
 def expand_zeros(tensor):
     pad = torch.zeros_like(tensor[0]).unsqueeze(0)
     return torch.cat((tensor, pad), 0)
-
-
