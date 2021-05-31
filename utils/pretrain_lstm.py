@@ -15,7 +15,7 @@ class Config:
     lstm_size: int = 128
     word_embed_dims: int = 128
     drop_out_prob: float = 0
-    phrases_path: str = './language_model/phrases.json'
+    phrases_path: str = '../language_model/phrases.json'
 
 cfg = Config()
 
