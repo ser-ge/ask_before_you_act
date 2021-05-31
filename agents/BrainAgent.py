@@ -271,8 +271,8 @@ class AgentExpMem(Agent):
         L_value = self.value_param * F.smooth_l1_loss(V_pred, target.detach())
 
         # Q&A Loss
-        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
 
+        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in reversed(range(reward.shape[0])]))
 
         L_policy_qa = ((self.policy_qa_param * reward_qa +
                         self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
@@ -369,7 +369,7 @@ class AgentExpMemEmbed(Agent):
 
         # Q&A Loss
 
-        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
+        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in reversed(range(reward.shape[0])]))
         L_policy_qa = ((self.policy_qa_param * reward_qa +
                         self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
