@@ -50,6 +50,7 @@ def render_qa(questions, answers):
           /* margin: 0 auto 1rem; */
           max-width: 230px;
           padding: 0.5rem 1.5rem;
+          zoom: 0.8;
         }
         
         .imessage p {
