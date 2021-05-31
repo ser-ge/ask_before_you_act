@@ -1,5 +1,5 @@
 from agents.BaselineAgent import BaselineAgentExpMem, BaselineAgent
-from agents.BrainAgent import AgentExpMem, AgentMem, Agent, AgentExpMemEmbed
+from agents.MainAgent import AgentExpMem, AgentMem, Agent, AgentExpMemEmbed
 from models.BaselineModel import BaselineModelExpMem, BaselineModel
 from models.BrainModel import BrainNetExpMem, BrainNetMem, BrainNet, BrainNetExpMemEmbed
 from language_model import Dataset, Model as QuestionRNN
