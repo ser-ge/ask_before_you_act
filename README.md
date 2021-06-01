@@ -2,7 +2,7 @@
 
 This repository contains the code for training and evaluation of our final NLP project: "Ask Before You Act".
 
-<img alt="Demo" src="./figures/demo.gif" width="500">
+<img alt="Demo" src="./figures/demo/demo.gif" width="500">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ser-ge/ask_before_you_act/blob/master/demo.ipynb)
 
