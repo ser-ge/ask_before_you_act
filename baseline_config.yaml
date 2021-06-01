@@ -7,7 +7,7 @@ word_embed_dims: 128
 drop_out_prob: 0
 hidden_dim: 32
 
-lr: 0.001
+lr: 0.0005
 gamma: 0.99
 lmbda: 0.95
 clip: 0.2
