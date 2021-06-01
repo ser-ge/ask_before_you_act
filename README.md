@@ -1,6 +1,6 @@
 # Ask Before You Act
 
-This repository contains the code for training and evaluation of our final NLP project: "Ask Before You Act".
+This repository contains the code for training and evaluation of our final NLP project: "[Ask Before You Act](./AskBeforeYouAct.pdf)".
 
 <img alt="Demo" src="./figures/demo/demo.gif" width="500">
 
@@ -43,5 +43,5 @@ To train the main agent on the MiniGrid-MultiRoom-N2-S4-v0 and test generalisati
 MiniGrid-MultiRoom-N4-S5-v0 you can run the following command:
 
 ```shell
-python run_experiments.py --env_train MiniGrid-MultiRoom-N2-S4-v0 --env_test -MiniGrid-MultiRoom-N4-S5-v0 -episodes 7500 --verbose 20 -c main_config.yaml
+python run_experiments.py --env_train MiniGrid-MultiRoom-N2-S4-v0 --env_test MiniGrid-MultiRoom-N4-S5-v0 --episodes 7500 --verbose 20 -c main_config.yaml
 ```
