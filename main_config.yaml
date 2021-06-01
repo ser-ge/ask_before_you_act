@@ -48,4 +48,4 @@ wandb: False
 
 notes: "main model with embeddings"
 load: False
-name: "main_agent"
+name: "main_agent_1"
