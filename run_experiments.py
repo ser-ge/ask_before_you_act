@@ -110,7 +110,6 @@ def random_experiment(cfg):
     # Test normal
     if cfg.test_episodes:
         print(f"============================ Test Random | No. Episodes {cfg.test_episodes:.0f} ============================")
-
         test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                                  log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
         save_agent(agent, cfg, cfg.name + '-test_random')
