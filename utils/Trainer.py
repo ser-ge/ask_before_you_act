@@ -160,7 +160,7 @@ def train_test(env, agent, cfg, logger=None, n_episodes=1000,
                     print(f"Episode: {episode}, Reward: {avg_R:.2f}, Avg. Reward Question {avg_syntax_r:.3f}, "
                           f"EPS: {log_interval / (current_time - last_time):.1f} ")
 
-                    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                    # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
                 avg_syntax_r = 0
                 last_time = current_time
 

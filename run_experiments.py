@@ -78,12 +78,15 @@ def run_experiment(cfg):
 
     if cfg.train_episodes:
         # Train
+        print(f"============================ Starting Train | No. Episodes {cfg.train_episodes:.0f} ============================")
         train_reward = train_test(env_train, agent, cfg, logger, n_episodes=cfg.train_episodes,
                               log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=False)
         save_agent(agent, cfg, cfg.name)
 
     # Test normal
     if cfg.test_episodes:
+        print(
+            f"============================ Starting Train | No. Episodes {cfg.test_episodes:.0f} ============================")
         test_reward = train_test(env_test, agent, cfg, logger, n_episodes=cfg.test_episodes,
                                   log_interval=cfg.train_log_interval, train=True, verbose=True, test_env=True)
         save_agent(agent, cfg, cfg.name + '-test')
