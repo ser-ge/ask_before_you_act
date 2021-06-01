@@ -1,6 +1,6 @@
 # Ask Before You Act
 
-This repository contains the code for training and evaluation of our final NLP project: "Ask Before You Act".
+This repository contains the code for training and evaluation of our final NLP project: "[Ask Before You Act](./AskBeforeYouAct.pdf)".
 
 <img alt="Demo" src="./figures/demo/demo.gif" width="500">
 
