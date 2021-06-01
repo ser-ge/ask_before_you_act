@@ -89,8 +89,15 @@ class Agent:
 
         # Q&A Loss
 
+        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
 
-        L_policy_qa = ((self.policy_qa_param * reward_qa + self.advantage_qa_param * advantage.squeeze()) * log_prob_qa).mean()
+        R_t = torch.cumsum(discounted_reward,0).T
+
+
+        L_policy_qa = ((self.policy_qa_param * reward_qa +
+                        self.advantage_qa_param * R_t) * log_prob_qa).mean()
+
+
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
@@ -272,10 +279,13 @@ class AgentExpMem(Agent):
 
         # Q&A Loss
 
-        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in reversed(range(reward.shape[0])]))
+
+        R_t = torch.cumsum(discounted_reward,0).T
 
         L_policy_qa = ((self.policy_qa_param * reward_qa +
-                        self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
+                        self.advantage_qa_param * R_t) * log_prob_qa).mean()
+
+
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
@@ -369,9 +379,15 @@ class AgentExpMemEmbed(Agent):
 
         # Q&A Loss
 
-        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in reversed(range(reward.shape[0])]))
+        discounted_reward = torch.Tensor([(self.gamma**i) * reward.squeeze()[-1] for i in range(reward.shape[0])])
+
+        R_t = torch.cumsum(discounted_reward,0).T
+
+
         L_policy_qa = ((self.policy_qa_param * reward_qa +
-                        self.advantage_qa_param * discounted_reward.squeeze()) * log_prob_qa).mean()
+                        self.advantage_qa_param * R_t) * log_prob_qa).mean()
+
+
         L_entropy_qa = self.entropy_qa_param * entropy_qa.mean()
         L_qa = (L_policy_qa + L_entropy_qa).to(device)
 
@@ -414,5 +430,3 @@ class AgentExpMemEmbed(Agent):
 def expand_zeros(tensor):
     pad = torch.zeros_like(tensor[0]).unsqueeze(0)
     return torch.cat((tensor, pad), 0)
-
-
