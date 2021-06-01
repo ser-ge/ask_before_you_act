@@ -18,6 +18,7 @@ parser.add_argument('-n','--number-of-experiments',
                        metavar='number-of-experiments',
                        dest='number_of_experiments',
                        type=int,
+                       default=1,
                        help='the number of experiments to run')
 
 parser.add_argument('-w','--wandb',
