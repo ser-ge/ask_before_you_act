@@ -26,7 +26,7 @@ relevant questions when deployed in a novel environment.
 The required Python packages can be installed by running:
 
 ```shell
-pip3 install --user --upgrade -r requirements.txt
+pip3 install --upgrade -r requirements.txt
 ```
 
 ## Trainning and Evaluation
